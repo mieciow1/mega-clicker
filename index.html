@@ -19,7 +19,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 #authStatus { font-size:12px; color:#555; }
 
 /* USER BAR */
-#userBar { display:none; position:fixed; top:0; right:0; padding:6px 12px; background:rgba(0,0,0,0.5); border-bottom-left-radius:10px; font-size:12px; align-items:center; gap:10px; z-index:60; }
+#userBar { display:none; position:fixed; bottom:0; left:0; right:0; padding:6px 16px; background:rgba(0,0,0,0.7); border-top:1px solid rgba(255,255,255,0.08); font-size:12px; align-items:center; gap:10px; z-index:60; justify-content:center; }
 #userBar img { width:24px; height:24px; border-radius:50%; }
 #userBar span { color:#ccc; }
 #logoutBtn { background:none; border:1px solid #444; color:#888; padding:3px 10px; border-radius:6px; cursor:pointer; font-size:11px; }
@@ -274,7 +274,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 
 <script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
                            from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc }
                            from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
@@ -293,20 +293,19 @@ const db   = getFirestore(app);
 let currentUser = null;
 let cloudTimer  = null;
 
+// ── REDIRECT RESULT (po powrocie z logowania Google)
+try {
+  const result = await getRedirectResult(auth);
+  // jeśli result != null, onAuthStateChanged zajmie sie reszta
+} catch(e) {
+  document.getElementById("authStatus").textContent = "Blad logowania: " + e.message;
+}
+
 // ── AUTH UI
 document.getElementById("googleLoginBtn").addEventListener("click", async () => {
-  document.getElementById("authStatus").textContent = "Logowanie...";
-  try {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: "select_account" });
-    await signInWithPopup(auth, provider);
-  } catch(e) {
-    if (e.code !== "auth/popup-closed-by-user") {
-      document.getElementById("authStatus").textContent = "Blad: " + e.message;
-    } else {
-      document.getElementById("authStatus").textContent = "Zaloguj sie aby grac.";
-    }
-  }
+  document.getElementById("authStatus").textContent = "Przekierowanie do Google...";
+  try { await signInWithRedirect(auth, new GoogleAuthProvider()); }
+  catch(e) { document.getElementById("authStatus").textContent = "Blad: " + e.message; }
 });
 document.getElementById("logoutBtn").addEventListener("click", async () => {
   await signOut(auth); location.reload();
