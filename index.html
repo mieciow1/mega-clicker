@@ -281,7 +281,7 @@ import { getFirestore, doc, getDoc, setDoc }
 
 const app  = initializeApp({
   apiKey:"AIzaSyC0EVa-GEbOqMsG3VbLkFEJQ1R9b_IYBng",
-  authDomain:"mieciow1.github.io",
+  authDomain:"mega-clicker-1.firebaseapp.com",
   projectId:"mega-clicker-1",
   storageBucket:"mega-clicker-1.firebasestorage.app",
   messagingSenderId:"806784361392",
@@ -294,18 +294,22 @@ let currentUser = null;
 let cloudTimer  = null;
 
 // ── REDIRECT RESULT (po powrocie z logowania Google)
-try {
-  const result = await getRedirectResult(auth);
-  // jeśli result != null, onAuthStateChanged zajmie sie reszta
-} catch(e) {
-  document.getElementById("authStatus").textContent = "Blad logowania: " + e.message;
-}
+getRedirectResult(auth).then(result => {
+  if (result && result.user) {
+    // zalogowano - onAuthStateChanged zajmie sie reszta
+  }
+}).catch(e => {
+  document.getElementById("authStatus").textContent = "Blad: " + e.message;
+});
 
 // ── AUTH UI
-document.getElementById("googleLoginBtn").addEventListener("click", async () => {
+document.getElementById("googleLoginBtn").addEventListener("click", () => {
   document.getElementById("authStatus").textContent = "Przekierowanie do Google...";
-  try { await signInWithRedirect(auth, new GoogleAuthProvider()); }
-  catch(e) { document.getElementById("authStatus").textContent = "Blad: " + e.message; }
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  signInWithRedirect(auth, provider).catch(e => {
+    document.getElementById("authStatus").textContent = "Blad: " + e.message;
+  });
 });
 document.getElementById("logoutBtn").addEventListener("click", async () => {
   await signOut(auth); location.reload();
