@@ -274,7 +274,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 
 <script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
                            from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc }
                            from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
@@ -293,23 +293,20 @@ const db   = getFirestore(app);
 let currentUser = null;
 let cloudTimer  = null;
 
-// ── REDIRECT RESULT (po powrocie z logowania Google)
-getRedirectResult(auth).then(result => {
-  if (result && result.user) {
-    // zalogowano - onAuthStateChanged zajmie sie reszta
-  }
-}).catch(e => {
-  document.getElementById("authStatus").textContent = "Blad: " + e.message;
-});
-
 // ── AUTH UI
-document.getElementById("googleLoginBtn").addEventListener("click", () => {
-  document.getElementById("authStatus").textContent = "Przekierowanie do Google...";
-  const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: "select_account" });
-  signInWithRedirect(auth, provider).catch(e => {
-    document.getElementById("authStatus").textContent = "Blad: " + e.message;
-  });
+document.getElementById("googleLoginBtn").addEventListener("click", async () => {
+  document.getElementById("authStatus").textContent = "Logowanie...";
+  try {
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    await signInWithPopup(auth, provider);
+  } catch(e) {
+    if (e.code !== "auth/popup-closed-by-user") {
+      document.getElementById("authStatus").textContent = "Blad: " + e.message;
+    } else {
+      document.getElementById("authStatus").textContent = "Zaloguj sie aby grac.";
+    }
+  }
 });
 document.getElementById("logoutBtn").addEventListener("click", async () => {
   await signOut(auth); location.reload();
