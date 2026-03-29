@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>mieciow1 - Pro Clicker</title>
+<style>
+* { box-sizing: border-box; }
+body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overflow-x:hidden; min-height:100vh; }
+
+/* AUTH OVERLAY */
+#authOverlay { position:fixed; inset:0; background:#1e1e2e; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:9999; gap:20px; }
+#authOverlay h1 { font-size:28px; color:#00ffcc; margin:0; }
+#authOverlay p  { color:#888; font-size:14px; margin:0; text-align:center; max-width:320px; }
+#googleLoginBtn { display:flex; align-items:center; gap:12px; padding:14px 28px; background:white; color:#333; border:none; border-radius:12px; font-size:15px; font-weight:bold; cursor:pointer; transition:opacity .15s,transform .08s; }
+#googleLoginBtn:hover { opacity:.9; }
+#googleLoginBtn:active { transform:scale(0.97); }
+#googleLoginBtn img { width:22px; height:22px; }
+#authStatus { font-size:12px; color:#555; }
+
+/* USER BAR */
+#userBar { display:none; position:fixed; top:0; right:0; padding:6px 12px; background:rgba(0,0,0,0.5); border-bottom-left-radius:10px; font-size:12px; align-items:center; gap:10px; z-index:60; }
+#userBar img { width:24px; height:24px; border-radius:50%; }
+#userBar span { color:#ccc; }
+#logoutBtn { background:none; border:1px solid #444; color:#888; padding:3px 10px; border-radius:6px; cursor:pointer; font-size:11px; }
+#logoutBtn:hover { color:white; border-color:#888; }
+#cloudSaveStatus { font-size:11px; color:#555; }
+
+/* HUD */
+#hud { position:fixed; top:0; left:0; right:0; display:flex; flex-direction:column; gap:6px; padding:8px 14px; background:rgba(0,0,0,0.6); backdrop-filter:blur(6px); z-index:50; }
+#hud-stats { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.stat { background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.15); border-radius:8px; padding:4px 12px; font-size:13px; white-space:nowrap; }
+.stat span { color:#00ffcc; font-weight:bold; }
+.stat.lvl-stat span { color:#c084fc; }
+.stat.xp-stat span  { color:#fbbf24; }
+.stat.gem-stat span { color:#f472b6; }
+#xp-bar-wrap { width:100%; height:5px; background:rgba(255,255,255,0.1); border-radius:3px; overflow:hidden; }
+#xp-bar-fill { height:100%; background:linear-gradient(90deg,#a855f7,#fbbf24); border-radius:3px; transition:width .15s; width:0%; }
+
+/* MAIN */
+#main { padding-top:74px; display:flex; flex-direction:column; align-items:center; gap:20px; padding-bottom:40px; }
+
+/* CLICK BUTTON */
+#clickBtn { width:180px; height:180px; background:linear-gradient(135deg,#00c6ff,#7b2ff7); border:none; border-radius:20px; cursor:pointer; font-size:40px; box-shadow:0 0 30px rgba(0,198,255,0.3); transition:transform .08s,box-shadow .08s; user-select:none; margin-top:8px; }
+#clickBtn:active { transform:scale(0.93); box-shadow:0 0 8px rgba(0,198,255,0.1); }
+
+/* POPS */
+.pop { position:fixed; pointer-events:none; font-weight:bold; animation:floatUp .9s ease forwards; z-index:999; }
+.pop.score   { color:#00ffcc; font-size:18px; }
+.pop.xp      { color:#fbbf24; font-size:13px; }
+.pop.gem     { color:#f472b6; font-size:16px; }
+.pop.cosmic  { color:#63b3ff; font-size:20px; }
+.pop.element { color:#ff7832; font-size:20px; }
+.pop.techpop { color:#00ffa0; font-size:20px; }
+@keyframes floatUp { 0%{opacity:1;transform:translateY(0)} 100%{opacity:0;transform:translateY(-65px)} }
+
+/* FLASH */
+#lvlup-flash { position:fixed; inset:0; pointer-events:none; background:rgba(168,85,247,0.15); opacity:0; transition:opacity .35s; z-index:500; }
+
+/* CARDS */
+.card { background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:14px; padding:16px 20px; width:min(440px,92vw); }
+.card h3 { margin:0 0 12px; font-size:12px; color:#777; text-transform:uppercase; letter-spacing:1px; }
+
+/* REBIRTH */
+.rebirth-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.rb-btn { padding:10px 6px; border:none; border-radius:10px; font-size:12px; font-weight:bold; color:#1a1a1a; cursor:pointer; transition:opacity .15s,transform .08s; text-align:center; line-height:1.4; }
+.rb-btn:hover { opacity:.88; }
+.rb-btn:active { transform:scale(0.96); }
+.rb-btn.rb1   { background:linear-gradient(135deg,#f7971e,#ffd200); }
+.rb-btn.rb10  { background:linear-gradient(135deg,#f59e0b,#ef4444); }
+.rb-btn.rb100 { background:linear-gradient(135deg,#a855f7,#ec4899); color:white; }
+.rb-btn.rb1k  { background:linear-gradient(135deg,#06b6d4,#3b82f6); color:white; }
+.rb-btn.rb10k { background:linear-gradient(135deg,#10b981,#6366f1); color:white; }
+.rb-info { font-size:11px; color:#555; margin:10px 0 0; }
+
+/* EGGS */
+.eggs { display:flex; gap:10px; flex-wrap:wrap; }
+.egg-btn { flex:1; min-width:88px; padding:10px 6px; background:rgba(255,255,255,0.07); border:1px solid rgba(255,255,255,0.18); border-radius:10px; cursor:pointer; color:white; font-size:12px; text-align:center; transition:background .15s; display:none; flex-direction:column; align-items:center; gap:3px; position:relative; }
+.egg-btn:hover { background:rgba(255,255,255,0.13); }
+.egg-btn.locked { opacity:.4; cursor:not-allowed; }
+.egg-btn .ename { font-size:22px; }
+.egg-btn .ecost { color:#ffd200; font-weight:bold; font-size:11px; }
+.egg-btn .gcost { color:#f472b6; font-weight:bold; font-size:11px; }
+.egg-btn .elock { color:#c084fc; font-size:10px; }
+.egg-btn .tip { display:none; position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%); background:#111; border:1px solid #444; border-radius:8px; padding:8px 12px; font-size:11px; white-space:nowrap; z-index:200; line-height:1.8; }
+.egg-btn:hover .tip { display:block; }
+.egg-btn.rare-cosmic  { border-color:rgba(99,179,255,.55);  background:rgba(30,80,180,.15); }
+.egg-btn.rare-element { border-color:rgba(255,120,50,.55);  background:rgba(180,60,20,.15); }
+.egg-btn.rare-tech    { border-color:rgba(0,255,160,.55);   background:rgba(0,140,80,.15); }
+.egg-btn.rare-gem     { border-color:rgba(244,114,182,.7);  background:rgba(180,30,100,.2); }
+
+/* SHOP */
+.shop-row { display:flex; justify-content:space-between; align-items:center; padding:9px 0; border-bottom:1px solid rgba(255,255,255,0.06); }
+.shop-row:last-child { border-bottom:none; }
+.shop-row.locked-row { opacity:.38; }
+.shop-buy { padding:5px 12px; background:rgba(0,255,204,0.12); border:1px solid rgba(0,255,204,0.28); border-radius:7px; color:#00ffcc; font-size:12px; cursor:pointer; transition:background .15s; white-space:nowrap; }
+.shop-buy:hover { background:rgba(0,255,204,0.24); }
+.lock-badge { font-size:11px; color:#c084fc; background:rgba(168,85,247,.14); border:1px solid rgba(168,85,247,.28); border-radius:5px; padding:3px 8px; white-space:nowrap; }
+
+/* CASINO */
+.casino-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+#betInput { flex:1; min-width:80px; padding:9px 12px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); border-radius:8px; color:white; font-size:14px; }
+.bet-btn { padding:9px 14px; border:none; border-radius:8px; font-size:13px; font-weight:bold; cursor:pointer; transition:opacity .15s; }
+.bet-btn:hover { opacity:.85; }
+#redBtn   { background:#e53935; color:white; }
+#blackBtn { background:#37474f; color:white; }
+#casinoResult { margin-top:10px; font-size:14px; font-weight:bold; min-height:20px; }
+
+/* SAVE */
+.save-row { display:flex; gap:10px; flex-wrap:wrap; }
+.save-btn { flex:1; padding:9px; border-radius:8px; border:1px solid rgba(255,255,255,0.2); background:rgba(255,255,255,0.07); color:white; font-size:13px; cursor:pointer; transition:background .15s; }
+.save-btn:hover { background:rgba(255,255,255,0.14); }
+#resetBtn { background:rgba(200,30,30,.2); border-color:rgba(200,30,30,.45); color:#ff6b6b; }
+#saveStatus { font-size:11px; color:#555; margin-top:6px; min-height:14px; }
+
+/* ACHIEVEMENTS */
+.ach-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+.ach-item { background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:10px; padding:10px 12px; }
+.ach-item.done { border-color:rgba(244,114,182,.5); background:rgba(244,114,182,.08); }
+.ach-item.done .ach-name { color:#f472b6; }
+.ach-icon { font-size:20px; }
+.ach-name { font-weight:bold; font-size:12px; color:#aaa; margin:4px 0 2px; }
+.ach-desc { color:#555; font-size:11px; }
+.ach-reward { color:#f472b6; font-size:11px; margin-top:3px; }
+
+/* GEM SHOP */
+.gem-egg-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+
+/* TOAST */
+#toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.9); border:1px solid rgba(255,255,255,.18); border-radius:10px; padding:10px 20px; font-size:13px; z-index:9999; opacity:0; transition:opacity .3s; pointer-events:none; max-width:90vw; text-align:center; }
+</style>
+</head>
+<body>
+
+<div id="authOverlay">
+  <div style="font-size:60px;">🖱️</div>
+  <h1>mieciow1 - Pro Clicker</h1>
+  <p>Zaloguj się przez Google, żeby zapisać postęp w chmurze na każdym urządzeniu.</p>
+  <button id="googleLoginBtn">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+    Zaloguj przez Google
+  </button>
+  <div id="authStatus">Łączenie z Firebase...</div>
+</div>
+
+<div id="userBar">
+  <img id="userAvatar" src="" alt="">
+  <span id="userName"></span>
+  <span id="cloudSaveStatus"></span>
+  <button id="logoutBtn">Wyloguj</button>
+</div>
+
+<div id="lvlup-flash"></div>
+
+<div id="hud">
+  <div id="hud-stats">
+    <div class="stat">Wynik: <span id="hudScore">0</span></div>
+    <div class="stat lvl-stat">Poziom: <span id="hudLvl">1</span></div>
+    <div class="stat xp-stat">XP: <span id="hudXP">0/100</span></div>
+    <div class="stat">Mnożnik: <span id="hudMult">1.00</span>x</div>
+    <div class="stat">Pet: <span id="hudPet">brak</span></div>
+    <div class="stat">Auto: <span id="hudAuto">0</span>/s</div>
+    <div class="stat gem-stat">💎 <span id="hudGems">0</span></div>
+  </div>
+  <div id="xp-bar-wrap"><div id="xp-bar-fill"></div></div>
+</div>
+
+<div id="main">
+
+  <button id="clickBtn">🖱️</button>
+
+  <div class="card">
+    <h3>Poziom i XP</h3>
+    <div id="lvlInfo" style="font-size:13px;color:#ccc;line-height:1.9;"></div>
+  </div>
+
+  <div class="card">
+    <h3>Rebirth</h3>
+    <div class="rebirth-grid">
+      <button class="rb-btn rb1"   onclick="doRebirth(1)">⚡ x1<br><span style="font-size:10px;font-weight:normal;">koszt 10 pkt</span></button>
+      <button class="rb-btn rb10"  onclick="doRebirth(10)">🔥 x10<br><span style="font-size:10px;font-weight:normal;">koszt 100 pkt</span></button>
+      <button class="rb-btn rb100" onclick="doRebirth(100)">💥 x100<br><span style="font-size:10px;font-weight:normal;">koszt 1k pkt</span></button>
+      <button class="rb-btn rb1k"  onclick="doRebirth(1000)">🌀 x1k<br><span style="font-size:10px;font-weight:normal;">koszt 10k pkt</span></button>
+      <button class="rb-btn rb10k" onclick="doRebirth(10000)" style="grid-column:span 2;">👑 x10 000<br><span style="font-size:10px;font-weight:normal;">koszt 100k pkt</span></button>
+    </div>
+    <p class="rb-info" id="rebirthInfo">Każdy rebirth: +0.1x mnożnik + 5 XP</p>
+  </div>
+
+  <div class="card">
+    <h3>Jajka (pety)</h3>
+    <div class="eggs">
+      <button class="egg-btn" id="egg1">
+        <span class="ename">🥚</span><span>Jajko 1</span><span class="ecost">100 pkt</span>
+        <div class="tip">🦜 Papuga +1.2x/+1XP (40%)<br>🐈 Kot +1.5x/+2XP (20%)<br>🐕 Pies +1.8x/+2XP (20%)<br>🐄 Krowa +2.2x/+3XP (20%)</div>
+      </button>
+      <button class="egg-btn" id="egg2">
+        <span class="ename">🥚🥚</span><span>Jajko 2</span><span class="ecost">500 pkt</span>
+        <div class="tip">🐉 Smok +2x/+3XP (40%)<br>🦉 Sowa +2.8x/+4XP (30%)<br>🦊 Lis +3.5x/+5XP (20%)<br>🐬 Delfin +5x/+8XP (10%)</div>
+      </button>
+      <button class="egg-btn" id="egg3">
+        <span class="ename">🥚🥚🥚</span><span>Jajko 3</span><span class="ecost">2k pkt</span>
+        <span class="elock" id="egg3lock">🔒 Lvl 10</span>
+        <div class="tip">⚫ Smok +3x/+6XP (50%)<br>🦄 Jednorożec +6x/+10XP (30%)<br>🔥 Feniks +9x/+15XP (12%)<br>🦅 Gryf +11.5x/+20XP (6%)<br>👑 Smok Boga +14x/+30XP (2%)</div>
+      </button>
+    </div>
+    <div class="eggs" style="margin-top:10px;">
+      <button class="egg-btn rare-cosmic" id="egg4">
+        <span class="ename">🌌</span><span>Kosmiczne</span><span class="ecost">15k pkt</span>
+        <span class="elock" id="egg4lock">🔒 Lvl 20</span>
+        <div class="tip">🛸 UFO +3x/+50XP (40%)<br>🪐 Saturn +6x/+80XP (30%)<br>🌟 Pulsar +10x/+120XP (18%)<br>🚀 Rakieta +15x/+160XP (9%)<br>🌀 Czarna Dziura +20x/+200XP (3%)</div>
+      </button>
+      <button class="egg-btn rare-element" id="egg5">
+        <span class="ename">🌋</span><span>Żywiołów</span><span class="ecost">50k pkt</span>
+        <span class="elock" id="egg5lock">🔒 Lvl 30</span>
+        <div class="tip">🌊 Lewiatan +5x/+60XP (40%)<br>🌪️ Wicher +12x/+90XP (30%)<br>⚡ Burza +22x/+130XP (18%)<br>🌋 Wulkan +35x/+170XP (9%)<br>❄️ Wieczny Lód +50x/+200XP (3%)</div>
+      </button>
+      <button class="egg-btn rare-tech" id="egg6">
+        <span class="ename">🤖</span><span>Techniczne</span><span class="ecost">200k pkt</span>
+        <span class="elock" id="egg6lock">🔒 Lvl 40</span>
+        <div class="tip">🦾 Android +10x/+70XP (40%)<br>💾 Megabot +25x/+100XP (30%)<br>🧬 NanoAI +50x/+150XP (18%)<br>🔮 Kwant-X +75x/+185XP (9%)<br>👾 GOD-AI +100x/+200XP (3%)</div>
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>💎 Sklep Gemów</h3>
+    <p style="font-size:11px;color:#666;margin:0 0 10px;">Gemy za osiągnięcia. Specjalne pety!</p>
+    <div class="gem-egg-row">
+      <button class="egg-btn rare-gem" id="gegg1" style="display:flex;">
+        <span class="ename">💫</span><span>Gwiezdne</span><span class="gcost">5 💎</span>
+        <div class="tip">🌠 Meteor +5x/+50XP (50%)<br>💫 Gwiazda +10x/+80XP (30%)<br>🌌 Galaktyka +18x/+120XP (15%)<br>✨ Supernowa +30x/+200XP (5%)</div>
+      </button>
+      <button class="egg-btn rare-gem" id="gegg2" style="display:flex;">
+        <span class="ename">👁️</span><span>Bogów</span><span class="gcost">20 💎</span>
+        <div class="tip">👁️ Oko Boga +25x/+200XP (50%)<br>⚜️ Archanioł +50x/+350XP (30%)<br>🔱 Posejdon +90x/+500XP (15%)<br>☀️ Ra +150x/+1000XP (5%)</div>
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Sklep — Auto kliknięcia</h3>
+    <div id="shopRows"></div>
+  </div>
+
+  <div class="card">
+    <h3>Kasyno (50/50)</h3>
+    <div class="casino-row">
+      <input type="number" id="betInput" placeholder="Kwota zakładu" min="1">
+      <button class="bet-btn" id="redBtn" onclick="casinoPlay('RED')">🔴 CZERWONY</button>
+      <button class="bet-btn" id="blackBtn" onclick="casinoPlay('BLACK')">⚫ CZARNY</button>
+    </div>
+    <div id="casinoResult"></div>
+  </div>
+
+  <div class="card">
+    <h3>🏆 Osiągnięcia</h3>
+    <p style="font-size:11px;color:#555;margin:0 0 12px;">Za osiągnięcia dostajesz 💎 gemy.</p>
+    <div class="ach-grid" id="achGrid"></div>
+  </div>
+
+  <div class="card">
+    <h3>Zapis gry</h3>
+    <p style="font-size:11px;color:#666;margin:0 0 10px;">Gra zapisuje się automatycznie w chmurze (Firebase). Eksport/Import to backup na wszelki wypadek.</p>
+    <div class="save-row">
+      <button class="save-btn" onclick="exportSave()">📤 Eksportuj backup</button>
+      <button class="save-btn" onclick="importSave()">📥 Importuj backup</button>
+      <button class="save-btn" id="resetBtn" onclick="resetGame()">🗑️ Reset</button>
+    </div>
+    <div id="saveStatus"></div>
+  </div>
+
+</div>
+<div id="toast"></div>
+
+<script type="module">
+import { initializeApp }   from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
+                           from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc }
+                           from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+const app  = initializeApp({
+  apiKey:"AIzaSyC0EVa-GEbOqMsG3VbLkFEJQ1R9b_IYBng",
+  authDomain:"mega-clicker-1.firebaseapp.com",
+  projectId:"mega-clicker-1",
+  storageBucket:"mega-clicker-1.firebasestorage.app",
+  messagingSenderId:"806784361392",
+  appId:"1:806784361392:web:dcf9fa5bb0682a837dac75"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let currentUser = null;
+let cloudTimer  = null;
+
+// ── REDIRECT RESULT (po powrocie z logowania Google)
+try {
+  const result = await getRedirectResult(auth);
+  // jeśli result != null, onAuthStateChanged zajmie sie reszta
+} catch(e) {
+  document.getElementById("authStatus").textContent = "Blad logowania: " + e.message;
+}
+
+// ── AUTH UI
+document.getElementById("googleLoginBtn").addEventListener("click", async () => {
+  document.getElementById("authStatus").textContent = "Przekierowanie do Google...";
+  try { await signInWithRedirect(auth, new GoogleAuthProvider()); }
+  catch(e) { document.getElementById("authStatus").textContent = "Blad: " + e.message; }
+});
+document.getElementById("logoutBtn").addEventListener("click", async () => {
+  await signOut(auth); location.reload();
+});
+
+// ── AUTH STATE
+onAuthStateChanged(auth, async user => {
+  if (user) {
+    currentUser = user;
+    document.getElementById("authOverlay").style.display = "none";
+    document.getElementById("userBar").style.display     = "flex";
+    document.getElementById("userAvatar").src            = user.photoURL || "";
+    document.getElementById("userName").textContent      = user.displayName || user.email;
+    await loadCloudSave();
+    startGame();
+  } else {
+    document.getElementById("authOverlay").style.display = "flex";
+    document.getElementById("userBar").style.display     = "none";
+    document.getElementById("authStatus").textContent    = "Zaloguj się aby grać.";
+  }
+});
+
+// ── CLOUD SAVE
+function setCloudStatus(msg) {
+  const el = document.getElementById("cloudSaveStatus");
+  if (el) el.textContent = msg;
+}
+
+async function loadCloudSave() {
+  try {
+    const snap = await getDoc(doc(db, "saves", currentUser.uid));
+    if (snap.exists() && snap.data().state) {
+      Object.assign(state, migrate(JSON.parse(snap.data().state)));
+      recalcAuto();
+      setCloudStatus("☁️ Wczytano zapis");
+    } else {
+      setCloudStatus("☁️ Nowe konto");
+    }
+  } catch(e) { setCloudStatus("⚠️ " + e.message); }
+}
+
+async function saveToCloud() {
+  if (!currentUser) return;
+  try {
+    await setDoc(doc(db, "saves", currentUser.uid), {
+      state:    JSON.stringify(state),
+      savedAt:  new Date().toISOString(),
+      userName: currentUser.displayName || currentUser.email
+    });
+    setCloudStatus("☁️ Zapisano " + new Date().toLocaleTimeString());
+    document.getElementById("saveStatus").textContent = "✅ Cloud save " + new Date().toLocaleTimeString();
+  } catch(e) { setCloudStatus("⚠️ Błąd zapisu"); }
+}
+
+function saveAll() {
+  // instant local backup
+  try { sessionStorage.setItem("mieciow1_v2", JSON.stringify(state)); } catch(e) {}
+  try { localStorage.setItem("mieciow1_v2",   JSON.stringify(state)); } catch(e) {}
+  // cloud debounced 5s
+  clearTimeout(cloudTimer);
+  cloudTimer = setTimeout(() => saveToCloud(), 5000);
+}
+
+// auto cloud save every 30s
+setInterval(() => saveToCloud(), 30000);
+
+// ── NUMBER FORMAT
+const SFX = [[1e15,"Q"],[1e12,"T"],[1e9,"B"],[1e6,"M"],[1e3,"k"]];
+function fmt(n) {
+  if (!isFinite(n)||isNaN(n)) return "∞";
+  n = Math.abs(n)>=1 ? Math.floor(n) : parseFloat(n.toFixed(2));
+  if (n<1000) return String(n);
+  for (const [v,s] of SFX) { if(n>=v){ const d=n/v; return (d>=100?Math.floor(d):d>=10?d.toFixed(1):d.toFixed(2))+s; } }
+  return n.toLocaleString();
+}
+
+// ── ACHIEVEMENTS
+const ACH = [
+  {id:"sc_1k",  icon:"🪙",name:"Pierwszy Tysiąc",   desc:"Zdobądź łącznie 1k pkt",      gems:1,  check:s=>s.totalScore>=1e3},
+  {id:"sc_1m",  icon:"💰",name:"Milioner",           desc:"Zdobądź łącznie 1M pkt",      gems:3,  check:s=>s.totalScore>=1e6},
+  {id:"sc_1b",  icon:"💎",name:"Miliardier",         desc:"Zdobądź łącznie 1B pkt",      gems:8,  check:s=>s.totalScore>=1e9},
+  {id:"sc_1t",  icon:"🏦",name:"Trylioner",          desc:"Zdobądź łącznie 1T pkt",      gems:20, check:s=>s.totalScore>=1e12},
+  {id:"sc_1q",  icon:"🌌",name:"Kwintylioner",       desc:"Zdobądź łącznie 1Q pkt",      gems:50, check:s=>s.totalScore>=1e15},
+  {id:"rb_1",   icon:"⚡",name:"Pierwsza Rebirth",   desc:"Wykonaj 1 rebirth",            gems:1,  check:s=>s.rebirths>=1},
+  {id:"rb_10",  icon:"🌀",name:"Rebirth x10",        desc:"Wykonaj 10 rebirthów",         gems:2,  check:s=>s.rebirths>=10},
+  {id:"rb_100", icon:"💫",name:"Rebirth x100",       desc:"Wykonaj 100 rebirthów",        gems:5,  check:s=>s.rebirths>=100},
+  {id:"rb_1k",  icon:"👑",name:"Rebirth x1 000",     desc:"Wykonaj 1 000 rebirthów",      gems:15, check:s=>s.rebirths>=1000},
+  {id:"rb_10k", icon:"🔱",name:"Rebirth x10 000",    desc:"Wykonaj 10 000 rebirthów",     gems:30, check:s=>s.rebirths>=10000},
+  {id:"rb_100k",icon:"☀️",name:"Rebirth x100 000",   desc:"Wykonaj 100 000 rebirthów",    gems:75, check:s=>s.rebirths>=100000},
+  {id:"pt_1",   icon:"🥚",name:"Pierwszy Pet",       desc:"Wylęgnij 1 peta",              gems:1,  check:s=>s.totalPets>=1},
+  {id:"pt_10",  icon:"🐾",name:"Hodowca",            desc:"Wylęgnij 10 petów",            gems:3,  check:s=>s.totalPets>=10},
+  {id:"pt_50",  icon:"🦁",name:"Mistrz Petów",       desc:"Wylęgnij 50 petów",            gems:8,  check:s=>s.totalPets>=50},
+  {id:"pt_200", icon:"🐉",name:"Arcyhodowca",        desc:"Wylęgnij 200 petów",           gems:20, check:s=>s.totalPets>=200},
+  {id:"pt_1k",  icon:"🌟",name:"Bóg Petów",          desc:"Wylęgnij 1 000 petów",         gems:50, check:s=>s.totalPets>=1000},
+  {id:"lv_5",   icon:"📗",name:"Nowicjusz",          desc:"Osiągnij poziom 5",             gems:1,  check:s=>s.level>=5},
+  {id:"lv_10",  icon:"📘",name:"Poziom 10",          desc:"Osiągnij poziom 10",            gems:2,  check:s=>s.level>=10},
+  {id:"lv_25",  icon:"📙",name:"Poziom 25",          desc:"Osiągnij poziom 25",            gems:5,  check:s=>s.level>=25},
+  {id:"lv_50",  icon:"📕",name:"Poziom 50",          desc:"Osiągnij poziom 50",            gems:12, check:s=>s.level>=50},
+  {id:"lv_100", icon:"🏆",name:"Poziom 100",         desc:"Osiągnij poziom 100",           gems:30, check:s=>s.level>=100},
+  {id:"lv_200", icon:"👑",name:"Legenda",            desc:"Osiągnij poziom 200",           gems:75, check:s=>s.level>=200},
+  {id:"mx_10",  icon:"✖️",name:"x10",                desc:"Mnożnik ≥ 10",                 gems:1,  check:s=>s.multiplier>=10},
+  {id:"mx_100", icon:"💥",name:"x100",               desc:"Mnożnik ≥ 100",                gems:5,  check:s=>s.multiplier>=100},
+  {id:"mx_1k",  icon:"🔥",name:"x1 000",             desc:"Mnożnik ≥ 1 000",              gems:12, check:s=>s.multiplier>=1000},
+  {id:"mx_10k", icon:"🌋",name:"x10 000",            desc:"Mnożnik ≥ 10 000",             gems:25, check:s=>s.multiplier>=10000},
+  {id:"mx_1m",  icon:"🌌",name:"x1 Milion",          desc:"Mnożnik ≥ 1 000 000",          gems:60, check:s=>s.multiplier>=1e6},
+  {id:"cl_100", icon:"🖱️",name:"Pierwsze 100",       desc:"Kliknij 100 razy",             gems:1,  check:s=>s.totalClicks>=100},
+  {id:"cl_1k",  icon:"⚡",name:"1k Kliknięć",        desc:"Kliknij 1 000 razy",           gems:2,  check:s=>s.totalClicks>=1000},
+  {id:"cl_10k", icon:"🎯",name:"10k Kliknięć",       desc:"Kliknij 10 000 razy",          gems:5,  check:s=>s.totalClicks>=10000},
+  {id:"cl_100k",icon:"🏹",name:"100k Kliknięć",      desc:"Kliknij 100 000 razy",         gems:12, check:s=>s.totalClicks>=100000},
+  {id:"cl_1m",  icon:"🚀",name:"Milion Kliknięć",    desc:"Kliknij 1 000 000 razy",       gems:30, check:s=>s.totalClicks>=1e6},
+  {id:"gm_1",   icon:"💎",name:"Pierwszy Gem",       desc:"Zdobądź 1 gema",               gems:0,  check:s=>s.totalGems>=1},
+  {id:"gm_10",  icon:"💠",name:"Kolekcjoner",        desc:"Zdobądź łącznie 10 gemów",     gems:0,  check:s=>s.totalGems>=10},
+  {id:"gm_50",  icon:"🔷",name:"Diamentowy",         desc:"Zdobądź łącznie 50 gemów",     gems:0,  check:s=>s.totalGems>=50},
+  {id:"au_all", icon:"🏭",name:"Pełna Automatyzacja",desc:"Kup każdy typ auto-klikacza",   gems:10, check:s=>Object.values(s.upgrades).every(v=>v>=1)},
+  {id:"no_auto",icon:"🤌",name:"Ręczny Mistrz",      desc:"1M pkt bez auto-klikaczy",     gems:15, check:s=>s.totalScore>=1e6&&s.autoPerSec===0},
+];
+
+// ── SHOP
+const SHOP = [
+  {id:"cursor", name:"🖱️ Auto-Kursor",  baseCost:50,    aps:0.5,  xps:0.2,  minLvl:1,  desc:"0.5 pkt/s · 0.2 XP/s"},
+  {id:"factory",name:"🏭 Mini-Fabryka", baseCost:500,   aps:5,    xps:1,    minLvl:5,  desc:"5 pkt/s · 1 XP/s (Lvl 5)"},
+  {id:"robot",  name:"🤖 Robot",        baseCost:2000,  aps:20,   xps:3,    minLvl:10, desc:"20 pkt/s · 3 XP/s (Lvl 10)"},
+  {id:"server", name:"💻 Serwer",       baseCost:8000,  aps:80,   xps:10,   minLvl:15, desc:"80 pkt/s · 10 XP/s (Lvl 15)"},
+  {id:"ai",     name:"🧠 AI-Core",      baseCost:30000, aps:350,  xps:40,   minLvl:20, desc:"350 pkt/s · 40 XP/s (Lvl 20)"},
+  {id:"quantum",name:"⚛️ Kwantowy PC",  baseCost:120000,aps:1500, xps:150,  minLvl:30, desc:"1500 pkt/s · 150 XP/s (Lvl 30)"},
+];
+
+// ── EGGS
+const EGGS = [
+  {id:"egg1", cost:100,    minLvl:1,  gemCost:0,  popCls:"score",   pets:[
+    {n:"🦜 Papuga",m:1.2,xp:1,w:.40},{n:"🐈 Kot",m:1.5,xp:2,w:.20},
+    {n:"🐕 Pies",m:1.8,xp:2,w:.20},{n:"🐄 Krowa",m:2.2,xp:3,w:.20}]},
+  {id:"egg2", cost:500,    minLvl:1,  gemCost:0,  popCls:"score",   pets:[
+    {n:"🐉 Smok",m:2,xp:3,w:.40},{n:"🦉 Sowa",m:2.8,xp:4,w:.30},
+    {n:"🦊 Lis",m:3.5,xp:5,w:.20},{n:"🐬 Delfin",m:5,xp:8,w:.10}]},
+  {id:"egg3", cost:2000,   minLvl:10, gemCost:0,  popCls:"score",   pets:[
+    {n:"⚫ Smok",m:3,xp:6,w:.50},{n:"🦄 Jednorożec",m:6,xp:10,w:.30},
+    {n:"🔥 Feniks",m:9,xp:15,w:.12},{n:"🦅 Gryf",m:11.5,xp:20,w:.06},
+    {n:"👑 Smok Boga",m:14,xp:30,w:.02}]},
+  {id:"egg4", cost:15000,  minLvl:20, gemCost:0,  popCls:"cosmic",  pets:[
+    {n:"🛸 UFO",m:3,xp:50,w:.40},{n:"🪐 Saturn",m:6,xp:80,w:.30},
+    {n:"🌟 Pulsar",m:10,xp:120,w:.18},{n:"🚀 Rakieta X",m:15,xp:160,w:.09},
+    {n:"🌀 Czarna Dziura",m:20,xp:200,w:.03}]},
+  {id:"egg5", cost:50000,  minLvl:30, gemCost:0,  popCls:"element", pets:[
+    {n:"🌊 Lewiatan",m:5,xp:60,w:.40},{n:"🌪️ Wicher",m:12,xp:90,w:.30},
+    {n:"⚡ Burza Wieków",m:22,xp:130,w:.18},{n:"🌋 Wulkan",m:35,xp:170,w:.09},
+    {n:"❄️ Wieczny Lód",m:50,xp:200,w:.03}]},
+  {id:"egg6", cost:200000, minLvl:40, gemCost:0,  popCls:"techpop", pets:[
+    {n:"🦾 Android",m:10,xp:70,w:.40},{n:"💾 Megabot",m:25,xp:100,w:.30},
+    {n:"🧬 NanoAI",m:50,xp:150,w:.18},{n:"🔮 Kwant-X",m:75,xp:185,w:.09},
+    {n:"👾 GOD-AI",m:100,xp:200,w:.03}]},
+  {id:"gegg1",cost:0,      minLvl:0,  gemCost:5,  popCls:"gem",     pets:[
+    {n:"🌠 Meteor",m:5,xp:50,w:.50},{n:"💫 Gwiazda",m:10,xp:80,w:.30},
+    {n:"🌌 Galaktyka",m:18,xp:120,w:.15},{n:"✨ Supernowa",m:30,xp:200,w:.05}]},
+  {id:"gegg2",cost:0,      minLvl:0,  gemCost:20, popCls:"gem",     pets:[
+    {n:"👁️ Oko Boga",m:25,xp:200,w:.50},{n:"⚜️ Archanioł",m:50,xp:350,w:.30},
+    {n:"🔱 Posejdon",m:90,xp:500,w:.15},{n:"☀️ Ra",m:150,xp:1000,w:.05}]},
+];
+
+// ── STATE
+let state = {
+  score:0,multiplier:1.0,pet:"brak",petEmoji:"",petXpBonus:1,petPopCls:"score",
+  autoPerSec:0,autoXpPerSec:0,
+  upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},
+  level:1,xp:0,gems:0,totalGems:0,
+  rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{}
+};
+
+function migrate(s) {
+  s.level=s.level||1; s.xp=s.xp||0; s.petXpBonus=s.petXpBonus||1;
+  s.petPopCls=s.petPopCls||"score"; s.autoXpPerSec=s.autoXpPerSec||0;
+  s.gems=s.gems||0; s.totalGems=s.totalGems||0; s.rebirths=s.rebirths||0;
+  s.totalClicks=s.totalClicks||0; s.totalScore=s.totalScore||0;
+  s.totalPets=s.totalPets||0; s.achDone=s.achDone||{}; s.upgrades=s.upgrades||{};
+  ["cursor","factory","robot","server","ai","quantum"].forEach(k=>{s.upgrades[k]=s.upgrades[k]||0;});
+  if(typeof s.multiplier!=="number"||isNaN(s.multiplier)||s.multiplier<1) s.multiplier=1.0;
+  if(typeof s.score!=="number"||isNaN(s.score)||s.score<0) s.score=0;
+  return s;
+}
+
+// ── XP
+function xpForLevel(lvl){return Math.floor(100*Math.pow(1.4,lvl-1));}
+function gainXP(amt){
+  state.xp+=amt;
+  let lv=false;
+  while(state.xp>=xpForLevel(state.level)){state.xp-=xpForLevel(state.level);state.level++;lv=true;}
+  if(lv){
+    document.getElementById("lvlup-flash").style.opacity="1";
+    setTimeout(()=>{document.getElementById("lvlup-flash").style.opacity="0";},400);
+    toast("🎉 Poziom "+state.level+"! Sprawdź sklep.");
+    buildShop();
+  }
+}
+
+function updateLvlInfo(){
+  const need=xpForLevel(state.level),pct=Math.min(100,state.xp/need*100).toFixed(1);
+  const next=SHOP.filter(s=>s.minLvl>state.level).map(s=>"Lvl "+s.minLvl+" → "+s.name);
+  document.getElementById("lvlInfo").innerHTML=
+    "Poziom <b style='color:#c084fc'>"+state.level+"</b> | XP: <b style='color:#fbbf24'>"+fmt(state.xp)+"/"+fmt(need)+"</b> ("+pct+"%)<br>"+
+    "XP/klik: <b style='color:#fbbf24'>"+state.petXpBonus+"</b> | XP auto/s: <b style='color:#fbbf24'>"+fmt(state.autoXpPerSec)+"</b><br>"+
+    "Rebirthy: <b style='color:#f7971e'>"+fmt(state.rebirths)+"</b> | Kliknięcia: <b style='color:#00ffcc'>"+fmt(state.totalClicks)+"</b><br>"+
+    (next.length?"<span style='color:#555;font-size:11px;'>Następne: "+next.slice(0,3).join(" · ")+"</span>":"<span style='color:#00ffcc;font-size:11px;'>✅ Wszystko odblokowane!</span>");
+}
+
+// ── ACHIEVEMENTS
+function checkAch(){
+  ACH.forEach(a=>{
+    if(!state.achDone[a.id]&&a.check(state)){
+      state.achDone[a.id]=true;
+      if(a.gems>0){state.gems+=a.gems;state.totalGems+=a.gems;spawnGemPop("+"+a.gems+" 💎");}
+      toast("🏆 "+a.name+(a.gems>0?" — +"+a.gems+" 💎":""));
+      buildAchGrid();
+    }
+  });
+}
+function buildAchGrid(){
+  const el=document.getElementById("achGrid");el.innerHTML="";
+  ACH.forEach(a=>{
+    const done=!!state.achDone[a.id],d=document.createElement("div");
+    d.className="ach-item"+(done?" done":"");
+    d.innerHTML="<div class='ach-icon'>"+a.icon+"</div><div class='ach-name'>"+a.name+"</div><div class='ach-desc'>"+a.desc+"</div>"+(a.gems>0?"<div class='ach-reward'>"+(done?"✅":"🔒")+" "+a.gems+" 💎</div>":"");
+    el.appendChild(d);
+  });
+}
+function spawnGemPop(txt){
+  const p=document.createElement("div");p.className="pop gem";p.textContent=txt;
+  p.style.left=(window.innerWidth/2-30)+"px";p.style.top="80px";
+  document.body.appendChild(p);setTimeout(()=>p.remove(),1000);
+}
+
+// ── SHOP
+function shopCost(it){return Math.ceil(it.baseCost*Math.pow(1.5,state.upgrades[it.id]));}
+function buildShop(){
+  const el=document.getElementById("shopRows");el.innerHTML="";
+  SHOP.forEach(it=>{
+    const lk=state.level<it.minLvl,cost=shopCost(it),own=state.upgrades[it.id];
+    const r=document.createElement("div");r.className="shop-row"+(lk?" locked-row":"");
+    r.innerHTML="<div><div style='font-size:13px;'>"+it.name+" <span style='color:#555;font-size:11px;'>("+own+")</span></div><div style='font-size:11px;color:#666;'>"+it.desc+"</div></div>"+(lk?"<span class='lock-badge'>🔒 Lvl "+it.minLvl+"</span>":"<button class='shop-buy' onclick=\"buyUpgrade('"+it.id+"')\">Kup — "+fmt(cost)+" pkt</button>");
+    el.appendChild(r);
+  });
+}
+function recalcAuto(){let a=0,x=0;SHOP.forEach(s=>{a+=s.aps*state.upgrades[s.id];x+=s.xps*state.upgrades[s.id];});state.autoPerSec=a;state.autoXpPerSec=x;}
+window.buyUpgrade=function(id){
+  const it=SHOP.find(s=>s.id===id);
+  if(state.level<it.minLvl){toast("Wymagany poziom "+it.minLvl+"!");return;}
+  const c=shopCost(it);if(state.score<c){toast("Za mało punktów!");return;}
+  state.score-=c;state.upgrades[id]++;recalcAuto();updateUI();buildShop();saveAll();
+};
+
+// ── BACKUP EXPORT / IMPORT
+function stateToCode(){try{return btoa(unescape(encodeURIComponent(JSON.stringify(state))));}catch(e){return btoa(JSON.stringify(state));}}
+function codeToState(c){try{return JSON.parse(decodeURIComponent(escape(atob(c))));}catch(e){return JSON.parse(atob(c));}}
+
+window.exportSave=function(){
+  const code=stateToCode(),wrap=document.createElement("div");
+  wrap.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;";
+  wrap.innerHTML="<div style='background:#1a1a2e;border:2px solid gold;border-radius:12px;padding:20px;width:min(380px,90vw);'><p style='color:#ffd200;font-weight:bold;margin:0 0 10px;'>📤 Kod backup:</p><textarea id='ea' readonly style='width:100%;height:80px;background:#111;color:white;border:1px solid #555;border-radius:6px;padding:8px;font-size:11px;resize:none;'>"+code+"</textarea><div style='display:flex;gap:8px;margin-top:10px;'><button id='cb' style='flex:1;padding:8px;background:#ffd200;color:#111;border:none;border-radius:6px;font-weight:bold;cursor:pointer;'>📋 Kopiuj</button><button id='cx' style='flex:1;padding:8px;background:#333;color:white;border:1px solid #555;border-radius:6px;cursor:pointer;'>✕ Zamknij</button></div></div>";
+  document.body.appendChild(wrap);
+  document.getElementById("cb").onclick=()=>{try{navigator.clipboard.writeText(code).then(()=>{document.getElementById("cb").textContent="✅ Skopiowano!";});}catch(e){document.getElementById("ea").select();document.execCommand("copy");document.getElementById("cb").textContent="✅ Skopiowano!";}};
+  document.getElementById("cx").onclick=()=>wrap.remove();
+  wrap.addEventListener("click",e=>{if(e.target===wrap)wrap.remove();});
+};
+
+window.importSave=function(){
+  const wrap=document.createElement("div");
+  wrap.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;";
+  wrap.innerHTML="<div style='background:#1a1a2e;border:2px solid #00ffcc;border-radius:12px;padding:20px;width:min(380px,90vw);'><p style='color:#00ffcc;font-weight:bold;margin:0 0 10px;'>📥 Wklej kod backup:</p><textarea id='ia' placeholder='Wklej kod...' style='width:100%;height:80px;background:#111;color:white;border:1px solid #555;border-radius:6px;padding:8px;font-size:11px;resize:none;'></textarea><div style='display:flex;gap:8px;margin-top:10px;'><button id='di' style='flex:1;padding:8px;background:#00ffcc;color:#111;border:none;border-radius:6px;font-weight:bold;cursor:pointer;'>✅ Załaduj</button><button id='ci' style='flex:1;padding:8px;background:#333;color:white;border:1px solid #555;border-radius:6px;cursor:pointer;'>✕ Anuluj</button></div></div>";
+  document.body.appendChild(wrap);
+  document.getElementById("di").onclick=()=>{
+    const c=document.getElementById("ia").value.trim();if(!c)return;
+    try{Object.assign(state,migrate(codeToState(c)));recalcAuto();saveAll();updateUI();buildShop();buildAchGrid();wrap.remove();toast("✅ Załadowano!");}
+    catch(e){toast("❌ Błędny kod!");}
+  };
+  document.getElementById("ci").onclick=()=>wrap.remove();
+  wrap.addEventListener("click",e=>{if(e.target===wrap)wrap.remove();});
+};
+
+window.resetGame=function(){
+  if(!confirm("Zresetować wszystko?"))return;
+  state={score:0,multiplier:1.0,pet:"brak",petEmoji:"",petXpBonus:1,petPopCls:"score",autoPerSec:0,autoXpPerSec:0,upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},level:1,xp:0,gems:0,totalGems:0,rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{}};
+  saveAll();updateUI();buildShop();buildAchGrid();toast("🗑️ Zapis usunięty.");
+};
+
+// ── EGGS
+function buyEgg(egg){
+  if(egg.gemCost>0){if(state.gems<egg.gemCost){toast("Za mało 💎! Potrzebujesz "+egg.gemCost);return;}state.gems-=egg.gemCost;}
+  else{if(state.level<egg.minLvl){toast("Wymagany poziom "+egg.minLvl+"!");return;}if(state.score<egg.cost){toast("Za mało punktów!");return;}state.score-=egg.cost;}
+  let r=Math.random(),c=0,ch=egg.pets[egg.pets.length-1];
+  for(const p of egg.pets){c+=p.w;if(r<c){ch=p;break;}}
+  state.multiplier=parseFloat((state.multiplier+ch.m).toFixed(2));
+  state.pet=ch.n+" (+"+ch.m+"x/+"+ch.xp+" XP)";state.petEmoji=ch.n.split(" ")[0];
+  state.petXpBonus=ch.xp;state.petPopCls=egg.popCls||"score";state.totalPets++;
+  checkAch();updateUI();saveAll();
+  toast("🎉 "+ch.n+" → +"+ch.m+"x mnożnik & +"+ch.xp+" XP/klik!");
+}
+EGGS.forEach(e=>{const el=document.getElementById(e.id);if(el)el.addEventListener("click",()=>buyEgg(e));});
+
+// ── CASINO
+window.casinoPlay=function(choice){
+  const b=parseFloat(document.getElementById("betInput").value),el=document.getElementById("casinoResult");
+  if(isNaN(b)||b<=0){el.innerHTML="<span style='color:#f88'>Wpisz kwotę.</span>";return;}
+  if(state.score<b){el.innerHTML="<span style='color:#f88'>Nie masz tyle!</span>";return;}
+  if(Math.random()<0.5===( choice==="RED")){state.score+=b;state.totalScore+=b;el.innerHTML="<span style='color:#4caf50'>✅ WYGRANA! +"+fmt(b)+" pkt</span>";gainXP(Math.max(1,Math.floor(Math.log10(b+1))));}
+  else{state.score-=b;el.innerHTML="<span style='color:#f44'>❌ PRZEGRANA! -"+fmt(b)+" pkt</span>";}
+  checkAch();updateUI();saveAll();
+};
+
+// ── CLICK
+document.getElementById("clickBtn").addEventListener("click",function(e){
+  const pts=state.multiplier,xg=state.petXpBonus;
+  state.score+=pts;state.totalScore+=pts;state.totalClicks++;
+  gainXP(xg);checkAch();updateUI();saveAll();
+  spawnPop("+"+fmt(pts),state.petPopCls||"score",e.clientX-22,e.clientY-12);
+  spawnPop("+"+xg+" XP","xp",e.clientX+8,e.clientY-24);
+});
+
+// ── REBIRTH
+window.doRebirth=function(n){
+  const cost=10*n;if(state.score<cost){toast("Za mało punktów! Potrzebujesz "+fmt(cost)+" pkt.");return;}
+  state.score-=cost;state.multiplier=parseFloat((state.multiplier+0.1*n).toFixed(2));
+  state.rebirths+=n;gainXP(5*n);checkAch();updateUI();saveAll();
+  toast("⚡ Rebirth x"+fmt(n)+"! Mnożnik: "+fmt(state.multiplier)+"x  (+"+fmt(5*n)+" XP)");
+};
+
+// ── POP
+function spawnPop(txt,cls,x,y){
+  const p=document.createElement("div");p.className="pop "+cls;p.textContent=txt;
+  p.style.left=x+"px";p.style.top=y+"px";document.body.appendChild(p);setTimeout(()=>p.remove(),900);
+}
+
+// ── UPDATE UI
+function updateUI(){
+  document.getElementById("hudScore").textContent=fmt(state.score);
+  document.getElementById("hudMult").textContent =fmt(state.multiplier);
+  document.getElementById("hudPet").textContent  =state.pet;
+  document.getElementById("hudAuto").textContent =fmt(state.autoPerSec);
+  document.getElementById("hudLvl").textContent  =state.level;
+  document.getElementById("hudGems").textContent =state.gems;
+  const need=xpForLevel(state.level);
+  document.getElementById("hudXP").textContent=fmt(state.xp)+"/"+fmt(need);
+  document.getElementById("xp-bar-fill").style.width=Math.min(100,state.xp/need*100).toFixed(1)+"%";
+  const ri=document.getElementById("rebirthInfo");
+  if(ri)ri.textContent="Rebirthy: "+fmt(state.rebirths)+" | +0.1x mnożnik +5 XP każdy";
+  EGGS.forEach(egg=>{
+    const el=document.getElementById(egg.id);if(!el)return;
+    if(egg.gemCost>0)return;
+    el.style.display=(state.score>=egg.cost||state.level>=egg.minLvl)?"flex":"none";
+    el.classList.toggle("locked",state.level<egg.minLvl);
+    const lk=document.getElementById(egg.id+"lock");
+    if(lk)lk.style.display=state.level<egg.minLvl?"inline":"none";
+  });
+  updateLvlInfo();
+}
+
+// ── AUTO TICK
+let lastTick=Date.now();
+function autoTick(){
+  const now=Date.now(),dt=(now-lastTick)/1000;lastTick=now;
+  if(state.autoPerSec>0||state.autoXpPerSec>0){
+    const g=state.autoPerSec*dt*state.multiplier;state.score+=g;state.totalScore+=g;
+    gainXP(state.autoXpPerSec*dt);updateUI();
+  }
+  requestAnimationFrame(autoTick);
+}
+
+// ── TOAST
+let tT;
+function toast(msg){
+  const el=document.getElementById("toast");el.textContent=msg;el.style.opacity="1";
+  clearTimeout(tT);tT=setTimeout(()=>{el.style.opacity="0";},3500);
+}
+
+// ── START
+function startGame(){recalcAuto();updateUI();buildShop();buildAchGrid();requestAnimationFrame(autoTick);}
+
+</script>
+</body>
+</html>
