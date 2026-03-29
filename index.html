@@ -123,8 +123,18 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 .ach-desc { color:#555; font-size:11px; }
 .ach-reward { color:#f472b6; font-size:11px; margin-top:3px; }
 
-/* GEM SHOP */
-.gem-egg-row { display:flex; gap:10px; flex-wrap:wrap; margin-top:6px; }
+.rb-btn.rb100k { background:linear-gradient(135deg,#f43f5e,#7c3aed); color:white; }
+.rb-btn.rb1m   { background:linear-gradient(135deg,#fbbf24,#f59e0b,#dc2626); color:#1a1a1a; }
+.rb-btn.rb10m  { background:linear-gradient(135deg,#00ffcc,#0ea5e9,#7c3aed); color:#1a1a1a; }
+
+/* CODES */
+.code-row { display:flex; gap:8px; align-items:center; margin-top:8px; }
+#codeInput { flex:1; padding:9px 12px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.2); border-radius:8px; color:white; font-size:14px; }
+#codeInput::placeholder { color:#555; }
+#codeSubmitBtn { padding:9px 18px; background:linear-gradient(135deg,#ffd200,#f59e0b); border:none; border-radius:8px; color:#111; font-weight:bold; font-size:13px; cursor:pointer; transition:opacity .15s; }
+#codeSubmitBtn:hover { opacity:.85; }
+#codeStatus { font-size:12px; color:#555; margin-top:6px; min-height:14px; }
+.code-list { margin-top:10px; font-size:11px; color:#444; line-height:2; }
 
 /* TOAST */
 #toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.9); border:1px solid rgba(255,255,255,.18); border-radius:10px; padding:10px 20px; font-size:13px; z-index:9999; opacity:0; transition:opacity .3s; pointer-events:none; max-width:90vw; text-align:center; }
@@ -177,11 +187,13 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
   <div class="card">
     <h3>Rebirth</h3>
     <div class="rebirth-grid">
-      <button class="rb-btn rb1"   onclick="doRebirth(1)">⚡ x1<br><span style="font-size:10px;font-weight:normal;">koszt 10 pkt</span></button>
-      <button class="rb-btn rb10"  onclick="doRebirth(10)">🔥 x10<br><span style="font-size:10px;font-weight:normal;">koszt 100 pkt</span></button>
-      <button class="rb-btn rb100" onclick="doRebirth(100)">💥 x100<br><span style="font-size:10px;font-weight:normal;">koszt 1k pkt</span></button>
-      <button class="rb-btn rb1k"  onclick="doRebirth(1000)">🌀 x1k<br><span style="font-size:10px;font-weight:normal;">koszt 10k pkt</span></button>
-      <button class="rb-btn rb10k" onclick="doRebirth(10000)" style="grid-column:span 2;">👑 x10 000<br><span style="font-size:10px;font-weight:normal;">koszt 100k pkt</span></button>
+      <button class="rb-btn rb1"    onclick="doRebirth(1)">⚡ x1<br><span style="font-size:10px;font-weight:normal;">koszt 10 pkt</span></button>
+      <button class="rb-btn rb10"   onclick="doRebirth(10)">🔥 x10<br><span style="font-size:10px;font-weight:normal;">koszt 100 pkt</span></button>
+      <button class="rb-btn rb100"  onclick="doRebirth(100)">💥 x100<br><span style="font-size:10px;font-weight:normal;">koszt 1k pkt</span></button>
+      <button class="rb-btn rb1k"   onclick="doRebirth(1000)">🌀 x1k<br><span style="font-size:10px;font-weight:normal;">koszt 10k pkt</span></button>
+      <button class="rb-btn rb10k"  onclick="doRebirth(10000)">👑 x10k<br><span style="font-size:10px;font-weight:normal;">koszt 100k pkt</span></button>
+      <button class="rb-btn rb100k" onclick="doRebirth(100000)">💀 x100k<br><span style="font-size:10px;font-weight:normal;">koszt 1M pkt</span></button>
+      <button class="rb-btn rb1m"   onclick="doRebirth(1000000)" style="grid-column:span 2;">🌟 x1 Milion<br><span style="font-size:10px;font-weight:normal;">koszt 10M pkt</span></button>
     </div>
     <p class="rb-info" id="rebirthInfo">Każdy rebirth: +0.1x mnożnik + 5 XP</p>
   </div>
@@ -220,7 +232,23 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
         <div class="tip">🦾 Android +10x/+70XP (40%)<br>💾 Megabot +25x/+100XP (30%)<br>🧬 NanoAI +50x/+150XP (18%)<br>🔮 Kwant-X +75x/+185XP (9%)<br>👾 GOD-AI +100x/+200XP (3%)</div>
       </button>
     </div>
-  </div>
+    <div class="eggs" style="margin-top:10px;">
+      <button class="egg-btn" style="border-color:rgba(255,215,0,.6);background:rgba(120,80,0,.2);" id="egg7">
+        <span class="ename">👼</span><span>Niebiańskie</span><span class="ecost">1M pkt</span>
+        <span class="elock" id="egg7lock">🔒 Lvl 55</span>
+        <div class="tip">😇 Anioł +20x/+80XP (40%)<br>🌈 Serafin +40x/+150XP (30%)<br>⚔️ Archanioł +70x/+250XP (18%)<br>🌞 Bóg Słońca +110x/+400XP (9%)<br>💠 Absolut +200x/+1000XP (3%)</div>
+      </button>
+      <button class="egg-btn" style="border-color:rgba(180,0,255,.6);background:rgba(80,0,120,.2);" id="egg8">
+        <span class="ename">🌑</span><span>Mroczne</span><span class="ecost">5M pkt</span>
+        <span class="elock" id="egg8lock">🔒 Lvl 70</span>
+        <div class="tip">🧛 Wampir +50x/+100XP (40%)<br>💀 Śmierć +100x/+200XP (30%)<br>👹 Demon +180x/+350XP (18%)<br>🕷️ Czarny Pająk +300x/+600XP (9%)<br>😈 Lucyfer +500x/+2000XP (3%)</div>
+      </button>
+      <button class="egg-btn" style="border-color:rgba(0,255,255,.6);background:rgba(0,80,100,.2);" id="egg9">
+        <span class="ename">🔮</span><span>Legendarne</span><span class="ecost">25M pkt</span>
+        <span class="elock" id="egg9lock">🔒 Lvl 90</span>
+        <div class="tip">🧙 Arcymag +100x/+200XP (40%)<br>🐲 Smok Chaosu +250x/+500XP (30%)<br>⚡ Zeus +500x/+1000XP (18%)<br>🌌 Kosmos +900x/+2000XP (9%)<br>🔱 Bóg Bogów +2000x/+5000XP (3%)</div>
+      </button>
+    </div>
 
   <div class="card">
     <h3>💎 Sklep Gemów</h3>
@@ -256,6 +284,17 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
     <h3>🏆 Osiągnięcia</h3>
     <p style="font-size:11px;color:#555;margin:0 0 12px;">Za osiągnięcia dostajesz 💎 gemy.</p>
     <div class="ach-grid" id="achGrid"></div>
+  </div>
+
+  <div class="card">
+    <h3>🎁 Kody</h3>
+    <p style="font-size:11px;color:#666;margin:0 0 8px;">Wpisz kod aby odebrać nagrodę. Każdy kod działa tylko raz!</p>
+    <div class="code-row">
+      <input type="text" id="codeInput" placeholder="Wpisz kod...">
+      <button id="codeSubmitBtn" onclick="redeemCode()">Użyj</button>
+    </div>
+    <div id="codeStatus"></div>
+    <div class="code-list" id="codeHints"></div>
   </div>
 
   <div class="card">
@@ -416,11 +455,18 @@ const ACH = [
   {id:"cl_10k", icon:"🎯",name:"10k Kliknięć",       desc:"Kliknij 10 000 razy",          gems:5,  check:s=>s.totalClicks>=10000},
   {id:"cl_100k",icon:"🏹",name:"100k Kliknięć",      desc:"Kliknij 100 000 razy",         gems:12, check:s=>s.totalClicks>=100000},
   {id:"cl_1m",  icon:"🚀",name:"Milion Kliknięć",    desc:"Kliknij 1 000 000 razy",       gems:30, check:s=>s.totalClicks>=1e6},
+  {id:"cl_10m", icon:"🌌",name:"10M Kliknięć",       desc:"Kliknij 10 000 000 razy",      gems:75, check:s=>s.totalClicks>=1e7},
   {id:"gm_1",   icon:"💎",name:"Pierwszy Gem",       desc:"Zdobądź 1 gema",               gems:0,  check:s=>s.totalGems>=1},
   {id:"gm_10",  icon:"💠",name:"Kolekcjoner",        desc:"Zdobądź łącznie 10 gemów",     gems:0,  check:s=>s.totalGems>=10},
   {id:"gm_50",  icon:"🔷",name:"Diamentowy",         desc:"Zdobądź łącznie 50 gemów",     gems:0,  check:s=>s.totalGems>=50},
+  {id:"gm_200", icon:"👑",name:"Król Diamentów",     desc:"Zdobądź łącznie 200 gemów",    gems:0,  check:s=>s.totalGems>=200},
   {id:"au_all", icon:"🏭",name:"Pełna Automatyzacja",desc:"Kup każdy typ auto-klikacza",   gems:10, check:s=>Object.values(s.upgrades).every(v=>v>=1)},
   {id:"no_auto",icon:"🤌",name:"Ręczny Mistrz",      desc:"1M pkt bez auto-klikaczy",     gems:15, check:s=>s.totalScore>=1e6&&s.autoPerSec===0},
+  {id:"rb_1m",  icon:"🌟",name:"Rebirth x1 Milion",  desc:"Wykonaj 1 000 000 rebirthów",  gems:200,check:s=>s.rebirths>=1000000},
+  {id:"lv_500", icon:"🔱",name:"Poziom 500",         desc:"Osiągnij poziom 500",           gems:200,check:s=>s.level>=500},
+  {id:"mx_1b",  icon:"💫",name:"x1 Miliard",         desc:"Mnożnik ≥ 1 000 000 000",      gems:150,check:s=>s.multiplier>=1e9},
+  {id:"code1",  icon:"🎁",name:"Łowca Kodów",        desc:"Użyj pierwszego kodu",         gems:2,  check:s=>Object.keys(s.usedCodes||{}).length>=1},
+  {id:"code5",  icon:"🗝️",name:"Kolekcjoner Kodów",  desc:"Użyj 5 kodów",                 gems:10, check:s=>Object.keys(s.usedCodes||{}).length>=5},
 ];
 
 // ── SHOP
@@ -457,7 +503,18 @@ const EGGS = [
     {n:"🦾 Android",m:10,xp:70,w:.40},{n:"💾 Megabot",m:25,xp:100,w:.30},
     {n:"🧬 NanoAI",m:50,xp:150,w:.18},{n:"🔮 Kwant-X",m:75,xp:185,w:.09},
     {n:"👾 GOD-AI",m:100,xp:200,w:.03}]},
-  {id:"gegg1",cost:0,      minLvl:0,  gemCost:5,  popCls:"gem",     pets:[
+  {id:"egg7", cost:1000000,  minLvl:55, gemCost:0,  popCls:"score",   pets:[
+    {n:"😇 Anioł",m:20,xp:80,w:.40},{n:"🌈 Serafin",m:40,xp:150,w:.30},
+    {n:"⚔️ Archanioł",m:70,xp:250,w:.18},{n:"🌞 Bóg Słońca",m:110,xp:400,w:.09},
+    {n:"💠 Absolut",m:200,xp:1000,w:.03}]},
+  {id:"egg8", cost:5000000,  minLvl:70, gemCost:0,  popCls:"score",   pets:[
+    {n:"🧛 Wampir",m:50,xp:100,w:.40},{n:"💀 Śmierć",m:100,xp:200,w:.30},
+    {n:"👹 Demon",m:180,xp:350,w:.18},{n:"🕷️ Czarny Pająk",m:300,xp:600,w:.09},
+    {n:"😈 Lucyfer",m:500,xp:2000,w:.03}]},
+  {id:"egg9", cost:25000000, minLvl:90, gemCost:0,  popCls:"score",   pets:[
+    {n:"🧙 Arcymag",m:100,xp:200,w:.40},{n:"🐲 Smok Chaosu",m:250,xp:500,w:.30},
+    {n:"⚡ Zeus",m:500,xp:1000,w:.18},{n:"🌌 Kosmos",m:900,xp:2000,w:.09},
+    {n:"🔱 Bóg Bogów",m:2000,xp:5000,w:.03}]},
     {n:"🌠 Meteor",m:5,xp:50,w:.50},{n:"💫 Gwiazda",m:10,xp:80,w:.30},
     {n:"🌌 Galaktyka",m:18,xp:120,w:.15},{n:"✨ Supernowa",m:30,xp:200,w:.05}]},
   {id:"gegg2",cost:0,      minLvl:0,  gemCost:20, popCls:"gem",     pets:[
@@ -471,7 +528,7 @@ let state = {
   autoPerSec:0,autoXpPerSec:0,
   upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},
   level:1,xp:0,gems:0,totalGems:0,
-  rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{}
+  rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{}
 };
 
 function migrate(s) {
@@ -481,7 +538,7 @@ function migrate(s) {
   s.totalClicks=s.totalClicks||0; s.totalScore=s.totalScore||0;
   s.totalPets=s.totalPets||0; s.achDone=s.achDone||{}; s.upgrades=s.upgrades||{};
   ["cursor","factory","robot","server","ai","quantum"].forEach(k=>{s.upgrades[k]=s.upgrades[k]||0;});
-  if(typeof s.multiplier!=="number"||isNaN(s.multiplier)||s.multiplier<1) s.multiplier=1.0;
+  s.usedCodes=s.usedCodes||{};
   if(typeof s.score!=="number"||isNaN(s.score)||s.score<0) s.score=0;
   return s;
 }
@@ -585,8 +642,8 @@ window.importSave=function(){
 
 window.resetGame=function(){
   if(!confirm("Zresetować wszystko?"))return;
-  state={score:0,multiplier:1.0,pet:"brak",petEmoji:"",petXpBonus:1,petPopCls:"score",autoPerSec:0,autoXpPerSec:0,upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},level:1,xp:0,gems:0,totalGems:0,rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{}};
-  saveAll();updateUI();buildShop();buildAchGrid();toast("🗑️ Zapis usunięty.");
+  state={score:0,multiplier:1.0,pet:"brak",petEmoji:"",petXpBonus:1,petPopCls:"score",autoPerSec:0,autoXpPerSec:0,upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},level:1,xp:0,gems:0,totalGems:0,rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{}};
+  saveAll();updateUI();buildShop();buildAchGrid();buildCodeHints();toast("🗑️ Zapis usunięty.");
 };
 
 // ── EGGS
@@ -617,7 +674,14 @@ window.casinoPlay=function(choice){
 document.getElementById("clickBtn").addEventListener("click",function(e){
   const pts=state.multiplier,xg=state.petXpBonus;
   state.score+=pts;state.totalScore+=pts;state.totalClicks++;
-  gainXP(xg);checkAch();updateUI();saveAll();
+  gainXP(xg);
+  // 💎 co 100 kliknięć = 1 diament
+  if(state.totalClicks%100===0){
+    state.gems++;state.totalGems++;
+    spawnPop("+1 💎","gem",e.clientX-10,e.clientY-40);
+    toast("💎 Zdobyłeś diament! (co 100 kliknięć)");
+  }
+  checkAch();updateUI();saveAll();
   spawnPop("+"+fmt(pts),state.petPopCls||"score",e.clientX-22,e.clientY-12);
   spawnPop("+"+xg+" XP","xp",e.clientX+8,e.clientY-24);
 });
@@ -628,6 +692,7 @@ window.doRebirth=function(n){
   state.score-=cost;state.multiplier=parseFloat((state.multiplier+0.1*n).toFixed(2));
   state.rebirths+=n;gainXP(5*n);checkAch();updateUI();saveAll();
   toast("⚡ Rebirth x"+fmt(n)+"! Mnożnik: "+fmt(state.multiplier)+"x  (+"+fmt(5*n)+" XP)");
+  buildCodeHints();
 };
 
 // ── POP
@@ -658,6 +723,7 @@ function updateUI(){
     if(lk)lk.style.display=state.level<egg.minLvl?"inline":"none";
   });
   updateLvlInfo();
+  buildCodeHints();
 }
 
 // ── AUTO TICK
@@ -678,8 +744,54 @@ function toast(msg){
   clearTimeout(tT);tT=setTimeout(()=>{el.style.opacity="0";},3500);
 }
 
+// ── CODES
+const CODES = {
+  "MIECIOW1":   {desc:"Startowy bonus",    gems:5,  score:0,    mult:0},
+  "GRINDTIME":  {desc:"Czas na grind!",    gems:3,  score:1000, mult:0},
+  "DIAMENT":    {desc:"Diamentowy bonus",  gems:10, score:0,    mult:0},
+  "SUPERBOOST": {desc:"Super doładowanie", gems:0,  score:5000, mult:0.5},
+  "LEGENDA":    {desc:"Legendarny gracz",  gems:20, score:0,    mult:1.0},
+  "PETLOVER":   {desc:"Kocham pety!",      gems:8,  score:2000, mult:0},
+  "REBIRTH100": {desc:"Rebirth master",    gems:15, score:0,    mult:2.0},
+  "MIECIOW1VIP":{desc:"VIP mieciow1",      gems:50, score:10000,mult:5.0},
+};
+
+window.redeemCode=function(){
+  const raw=document.getElementById("codeInput").value.trim().toUpperCase();
+  const el=document.getElementById("codeStatus");
+  if(!raw){el.style.color="#f88";el.textContent="Wpisz kod!";return;}
+  if(state.usedCodes[raw]){el.style.color="#f88";el.textContent="❌ Ten kod już został użyty!";return;}
+  const c=CODES[raw];
+  if(!c){el.style.color="#f88";el.textContent="❌ Nieprawidłowy kod!";return;}
+  state.usedCodes[raw]=true;
+  if(c.gems>0){state.gems+=c.gems;state.totalGems+=c.gems;}
+  if(c.score>0){state.score+=c.score;state.totalScore+=c.score;}
+  if(c.mult>0){state.multiplier=parseFloat((state.multiplier+c.mult).toFixed(2));}
+  let msg="✅ Kod aktywowany! "+c.desc;
+  if(c.gems>0)msg+=" | +"+c.gems+" 💎";
+  if(c.score>0)msg+=" | +"+fmt(c.score)+" pkt";
+  if(c.mult>0)msg+=" | +"+c.mult+"x mnożnik";
+  el.style.color="#00ffcc";el.textContent=msg;
+  document.getElementById("codeInput").value="";
+  checkAch();updateUI();saveAll();
+  toast("🎁 "+msg);
+};
+
+function buildCodeHints(){
+  const el=document.getElementById("codeHints");if(!el)return;
+  const lines=Object.entries(CODES).map(([k,v])=>{
+    const used=state.usedCodes&&state.usedCodes[k];
+    const rewards=[];
+    if(v.gems)rewards.push("+"+v.gems+" 💎");
+    if(v.score)rewards.push("+"+fmt(v.score)+" pkt");
+    if(v.mult)rewards.push("+"+v.mult+"x mnożnik");
+    return `<span style="color:${used?"#333":"#555"}">${used?"✅":"🔑"} <b style="color:${used?"#333":"#ffd200"}">${k}</b> — ${v.desc} (${rewards.join(", ")})</span>`;
+  });
+  el.innerHTML=lines.join("<br>");
+}
+
 // ── START
-function startGame(){recalcAuto();updateUI();buildShop();buildAchGrid();requestAnimationFrame(autoTick);}
+function startGame(){recalcAuto();updateUI();buildShop();buildAchGrid();buildCodeHints();requestAnimationFrame(autoTick);}
 
 </script>
 </body>
