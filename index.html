@@ -752,13 +752,14 @@ function toast(msg){
 // ── CODES
 const CODES = {
   "MIECIOW1":   {desc:"Startowy bonus",    gems:5,  score:0,    mult:0},
-  "GRINDTIME":  {desc:"Czas na grind!",    gems:3,  score:1000, mult:0},
-  "DIAMENT":    {desc:"Diamentowy bonus",  gems:10, score:0,    mult:0},
-  "SUPERBOOST": {desc:"Super doładowanie", gems:0,  score:5000, mult:0.5},
-  "LEGENDA":    {desc:"Legendarny gracz",  gems:20, score:0,    mult:1.0},
-  "PETLOVER":   {desc:"Kocham pety!",      gems:8,  score:2000, mult:0},
-  "REBIRTH100": {desc:"Rebirth master",    gems:15, score:0,    mult:2.0},
-  "MIECIOW1VIP":{desc:"VIP mieciow1",      gems:50, score:10000,mult:5.0},
+  "GRINDTIME":  {desc:"Czas na grind!",    gems:50,  score:100000, mult:0},
+  "DIAMENT":    {desc:"Diamentowy bonus",  gems:100, score:0,    mult:0},
+  "SUPERBOOST": {desc:"Super doładowanie", gems:0,  score:5000, mult:30},
+  "LEGENDA":    {desc:"Legendarny gracz",  gems:20, score:0,    mult:100.0},
+  "PETLOVER":   {desc:"Kocham pety!",      gems:60,  score:2000, mult:0},
+  "REBIRTH100": {desc:"Rebirth master",    gems:150, score:0,    mult:2},
+  "MIECIOW1VIP":{desc:"VIP mieciow1",      gems:500, score:1000000,mult:500},
+  "DEV":{desc:"Tylko dla developerów gry.",      gems:500000000, score:100000000000,mult:5000000000000},
 };
 
 window.redeemCode=function(){
