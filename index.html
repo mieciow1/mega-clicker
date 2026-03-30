@@ -227,6 +227,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
       <div class="stat">Auto: <span id="eHudAuto" style="color:#00ffcc;font-weight:bold;">0</span>/s</div>
       <div class="stat">Rebirthy: <span id="eHudRebirths" style="color:#ffd200;font-weight:bold;">0</span></div>
       <div class="stat">Mnożnik: <span id="eHudMult" style="color:#ff0080;font-weight:bold;">1</span>x</div>
+      <div class="stat">Pet: <span id="eHudPet" style="color:#00ffcc;font-weight:bold;">brak</span></div>
     </div>
     <div id="eventXpBar"><div id="eventXpFill"></div></div>
   </div>
@@ -856,11 +857,16 @@ function updateUI(){
 
 // ── AUTO TICK
 let lastTick=Date.now();
+let inEvent=false;
 function autoTick(){
-  const now=Date.now(),dt=(now-lastTick)/1000;lastTick=now;
-  if(state.autoPerSec>0||state.autoXpPerSec>0){
-    const g=state.autoPerSec*dt*state.multiplier;state.score+=g;state.totalScore+=g;
-    gainXP(state.autoXpPerSec*dt);updateUI();
+  if(!inEvent){
+    const now=Date.now(),dt=(now-lastTick)/1000;lastTick=now;
+    if(state.autoPerSec>0||state.autoXpPerSec>0){
+      const g=state.autoPerSec*dt*state.multiplier;state.score+=g;state.totalScore+=g;
+      gainXP(state.autoXpPerSec*dt);updateUI();
+    }
+  } else {
+    lastTick=Date.now();
   }
   requestAnimationFrame(autoTick);
 }
@@ -919,13 +925,13 @@ const EVENT_SHOP = [
   {id:"eauto5",name:"🌌 Galaktyka Tęczy",baseCost:200000,aps:1000},
 ];
 
-let eState = {score:0, mult:1, rebirths:0, autoPerSec:0, upgrades:{eauto1:0,eauto2:0,eauto3:0,eauto4:0,eauto5:0}};
+let eState = {score:0, mult:1, rebirths:0, autoPerSec:0, pet:"brak", upgrades:{eauto1:0,eauto2:0,eauto3:0,eauto4:0,eauto5:0}};
 let eLastTick = Date.now();
 let eAutoFrame = null;
 
 function eMigrate(s){
   s.score=s.score||0; s.mult=s.mult||1; s.rebirths=s.rebirths||0;
-  s.autoPerSec=s.autoPerSec||0; s.upgrades=s.upgrades||{};
+  s.autoPerSec=s.autoPerSec||0; s.upgrades=s.upgrades||{}; s.pet=s.pet||"brak";
   EVENT_SHOP.forEach(sh=>{s.upgrades[sh.id]=s.upgrades[sh.id]||0;});
   return s;
 }
@@ -981,6 +987,7 @@ function eUpdateUI(){
   const a=document.getElementById("eHudAuto");if(a)a.textContent=fmt(eState.autoPerSec);
   const r=document.getElementById("eHudRebirths");if(r)r.textContent=fmt(eState.rebirths);
   const m=document.getElementById("eHudMult");if(m)m.textContent=fmt(eState.mult);
+  const pt=document.getElementById("eHudPet");if(pt)pt.textContent=eState.pet||"brak";
   const ri=document.getElementById("eventRebirthInfo");if(ri)ri.textContent="Rebirthy: "+fmt(eState.rebirths)+" | +0.5x mnożnik tęczy każdy";
   const xpFill=document.getElementById("eventXpFill");
   if(xpFill)xpFill.style.width=Math.min(100,(eState.score%1000)/10).toFixed(1)+"%";
@@ -1005,6 +1012,7 @@ EVENT_EGGS.forEach(egg=>{
     let r=Math.random(),c=0,ch=egg.pets[egg.pets.length-1];
     for(const p of egg.pets){c+=p.w;if(r<c){ch=p;break;}}
     eState.mult=parseFloat((eState.mult+ch.m).toFixed(2));
+    eState.pet=ch.n+" (+"+ch.m+"x)";
     eUpdateUI();saveEventState();
     toast("🎉 "+ch.n+" → +"+ch.m+"x mnożnik tęczy!");
   });
@@ -1030,6 +1038,7 @@ function loadEventState(){
 }
 
 window.enterEvent=function(){
+  inEvent=true;
   document.getElementById("eventWorld").style.display="block";
   document.getElementById("main").style.display="none";
   document.getElementById("hud").style.display="none";
@@ -1039,6 +1048,8 @@ window.enterEvent=function(){
 };
 
 window.leaveEvent=function(){
+  inEvent=false;
+  lastTick=Date.now();
   document.getElementById("eventWorld").style.display="none";
   document.getElementById("main").style.display="flex";
   document.getElementById("hud").style.display="flex";
