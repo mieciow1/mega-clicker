@@ -199,6 +199,17 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 </head>
 <body>
 
+<div id="authOverlay">
+  <div style="font-size:60px;">🖱️</div>
+  <h1>mieciow1 - Pro Clicker</h1>
+  <p>Zaloguj się przez Google, żeby zapisać postęp w chmurze na każdym urządzeniu.</p>
+  <button id="googleLoginBtn">
+    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="G">
+    Zaloguj przez Google
+  </button>
+  <div id="authStatus">Łączenie z Firebase...</div>
+</div>
+
 <div id="userBar">
   <img id="userAvatar" src="" alt="">
   <span id="userName"></span>
@@ -871,8 +882,6 @@ const CODES = {
   "PETLOVER":   {desc:"Kocham pety!",      gems:8,  score:2000, mult:0},
   "REBIRTH100": {desc:"Rebirth master",    gems:15, score:0,    mult:2.0},
   "MIECIOW1VIP":{desc:"VIP mieciow1",      gems:50, score:10000,mult:5.0},
-  "SLOW":{desc:"Dzięki za 10 diamentów  :)",      gems:-10, score:0,mult:0},
-   "DEV":{desc:"tylko dla developerow xd",      gems:50000000000000000000000, score:1000000000000000000000000000000,mult:500000000000000000000000000000},
 };
 
 window.redeemCode=function(){
