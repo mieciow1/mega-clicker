@@ -876,11 +876,11 @@ document.getElementById("clickBtn").addEventListener("click",function(e){
   const pts=state.multiplier,xg=state.petXpBonus;
   state.score+=pts;state.totalScore+=pts;state.totalClicks++;
   gainXP(xg);
-  // 💎 co 100 kliknięć = 1 diament
-  if(state.totalClicks%100===0){
+  // 💎 co 10000 kliknięć = 1 diament
+  if(state.totalClicks%10000===0){
     state.gems++;state.totalGems++;
     spawnPop("+1 💎","gem",e.clientX-10,e.clientY-40);
-    toast("💎 Zdobyłeś diament! (co 100 kliknięć)");
+    toast("💎 Zdobyłeś diament! (co 10 000 kliknięć)");
   }
   checkAch();updateUI();saveAll();
   spawnPop("+"+fmt(pts),state.petPopCls||"score",e.clientX-22,e.clientY-12);
