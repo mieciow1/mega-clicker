@@ -193,8 +193,34 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 #codeStatus { font-size:12px; color:#555; margin-top:6px; min-height:14px; }
 .code-list { margin-top:10px; font-size:11px; color:#444; line-height:2; }
 
-/* TOAST */
-#toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.9); border:1px solid rgba(255,255,255,.18); border-radius:10px; padding:10px 20px; font-size:13px; z-index:9999; opacity:0; transition:opacity .3s; pointer-events:none; max-width:90vw; text-align:center; }
+/* NICKNAME POPUP */
+#nickOverlay { position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:10000; display:none; align-items:center; justify-content:center; }
+#nickOverlay.show { display:flex; }
+#nickBox { background:#1a1a2e; border:2px solid #00ffcc; border-radius:16px; padding:28px 24px; width:min(360px,90vw); display:flex; flex-direction:column; gap:14px; }
+#nickBox h2 { margin:0; color:#00ffcc; font-size:20px; }
+#nickBox p  { margin:0; color:#888; font-size:13px; }
+#nickInput { padding:12px 14px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2); border-radius:10px; color:white; font-size:15px; outline:none; }
+#nickInput:focus { border-color:#00ffcc; }
+#nickConfirmBtn { padding:12px; background:linear-gradient(135deg,#00ffcc,#0ea5e9); border:none; border-radius:10px; color:#111; font-weight:bold; font-size:15px; cursor:pointer; }
+#nickConfirmBtn:hover { opacity:.9; }
+#nickError { color:#f88; font-size:12px; min-height:14px; }
+
+/* LEADERBOARD */
+#lbOverlay { position:fixed; inset:0; background:rgba(0,0,0,.85); z-index:10000; display:none; align-items:center; justify-content:center; }
+#lbOverlay.show { display:flex; }
+#lbBox { background:#1a1a2e; border:2px solid #ffd200; border-radius:16px; padding:24px; width:min(420px,94vw); max-height:80vh; overflow-y:auto; display:flex; flex-direction:column; gap:12px; }
+#lbBox h2 { margin:0; color:#ffd200; font-size:20px; }
+.lb-tabs { display:flex; gap:8px; }
+.lb-tab { flex:1; padding:8px; border:1px solid rgba(255,255,255,.15); border-radius:8px; background:rgba(255,255,255,.05); color:#888; font-size:12px; cursor:pointer; text-align:center; }
+.lb-tab.active { border-color:#ffd200; color:#ffd200; background:rgba(255,215,0,.08); }
+.lb-row { display:flex; align-items:center; gap:10px; padding:10px 12px; background:rgba(255,255,255,.04); border-radius:10px; border:1px solid rgba(255,255,255,.07); }
+.lb-row.me { border-color:rgba(0,255,204,.4); background:rgba(0,255,204,.06); }
+.lb-rank { font-size:18px; min-width:30px; text-align:center; }
+.lb-name { flex:1; font-size:14px; font-weight:bold; }
+.lb-val  { color:#ffd200; font-size:13px; font-weight:bold; }
+.lb-close { padding:10px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.15); border-radius:8px; color:#888; cursor:pointer; font-size:13px; }
+.lb-close:hover { color:white; }
+#lbStatus { font-size:12px; color:#555; text-align:center; }
 </style>
 </head>
 <body>
@@ -214,7 +240,35 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
   <img id="userAvatar" src="" alt="">
   <span id="userName"></span>
   <span id="cloudSaveStatus"></span>
+  <button id="changeNickBtn" onclick="openChangeNick()" style="background:none;border:1px solid #444;color:#888;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;">✏️ Nick</button>
+  <button id="lbBtn" onclick="openLb()" style="background:none;border:1px solid #ffd200;color:#ffd200;padding:3px 10px;border-radius:6px;cursor:pointer;font-size:11px;">🏆 Topki</button>
   <button id="logoutBtn">Wyloguj</button>
+</div>
+
+<!-- NICKNAME OVERLAY -->
+<div id="nickOverlay">
+  <div id="nickBox">
+    <h2>👋 Jak masz na imię?</h2>
+    <p>Wybierz nick widoczny w topkach. Możesz go zmienić później w dolnym pasku.</p>
+    <input id="nickInput" type="text" placeholder="Twój nick..." maxlength="20">
+    <div id="nickError"></div>
+    <button id="nickConfirmBtn" onclick="confirmNick()">Zatwierdź ✓</button>
+  </div>
+</div>
+
+<!-- LEADERBOARD OVERLAY -->
+<div id="lbOverlay">
+  <div id="lbBox">
+    <h2>🏆 Topki</h2>
+    <div class="lb-tabs">
+      <div class="lb-tab active" id="lbTab0" onclick="switchLbTab(0)">💰 Wynik</div>
+      <div class="lb-tab" id="lbTab1" onclick="switchLbTab(1)">⚡ Rebirthy</div>
+      <div class="lb-tab" id="lbTab2" onclick="switchLbTab(2)">📊 Poziom</div>
+    </div>
+    <div id="lbStatus">Ładowanie...</div>
+    <div id="lbList"></div>
+    <button class="lb-close" onclick="closeLb()">✕ Zamknij</button>
+  </div>
 </div>
 
 <div id="lvlup-flash"></div>
@@ -437,7 +491,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
                            from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc }
+import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs }
                            from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 const app  = initializeApp({
@@ -484,8 +538,14 @@ onAuthStateChanged(auth, async user => {
     document.getElementById("authOverlay").style.display = "none";
     document.getElementById("userBar").style.display     = "flex";
     document.getElementById("userAvatar").src            = user.photoURL || "";
-    document.getElementById("userName").textContent      = user.displayName || user.email;
     await loadCloudSave();
+    // Check if nick is set
+    if (!state.nick) {
+      document.getElementById("nickOverlay").classList.add("show");
+      document.getElementById("nickInput").focus();
+    } else {
+      document.getElementById("userName").textContent = state.nick;
+    }
     startGame();
   } else {
     document.getElementById("authOverlay").style.display = "flex";
@@ -519,8 +579,18 @@ async function saveToCloud() {
     await setDoc(doc(db, "saves", currentUser.uid), {
       state:    JSON.stringify(state),
       savedAt:  new Date().toISOString(),
-      userName: currentUser.displayName || currentUser.email
+      userName: state.nick || currentUser.displayName || currentUser.email
     });
+    // Update leaderboard
+    if (state.nick) {
+      await setDoc(doc(db, "leaderboard", currentUser.uid), {
+        nick:      state.nick,
+        score:     state.totalScore || 0,
+        rebirths:  state.rebirths   || 0,
+        level:     state.level      || 1,
+        updatedAt: new Date().toISOString()
+      });
+    }
     setCloudStatus("☁️ Zapisano " + new Date().toLocaleTimeString());
     document.getElementById("saveStatus").textContent = "✅ Cloud save " + new Date().toLocaleTimeString();
   } catch(e) { setCloudStatus("⚠️ Błąd zapisu"); }
@@ -656,7 +726,7 @@ let state = {
   autoPerSec:0,autoXpPerSec:0,
   upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},
   level:1,xp:0,gems:0,totalGems:0,
-  rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{}
+  rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{},nick:""
 };
 
 function migrate(s) {
@@ -668,6 +738,7 @@ function migrate(s) {
   ["cursor","factory","robot","server","ai","quantum"].forEach(k=>{s.upgrades[k]=s.upgrades[k]||0;});
   s.usedCodes=s.usedCodes||{};
   s.eventState=s.eventState||null;
+  s.nick=s.nick||"";
   if(typeof s.score!=="number"||isNaN(s.score)||s.score<0) s.score=0;
   return s;
 }
@@ -771,7 +842,8 @@ window.importSave=function(){
 
 window.resetGame=function(){
   if(!confirm("Zresetować wszystko?"))return;
-  state={score:0,multiplier:1.0,pet:"brak",petEmoji:"",petXpBonus:1,petPopCls:"score",autoPerSec:0,autoXpPerSec:0,upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},level:1,xp:0,gems:0,totalGems:0,rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{}};
+  const savedNick = state.nick;
+  state={score:0,multiplier:1.0,pet:"brak",petEmoji:"",petXpBonus:1,petPopCls:"score",autoPerSec:0,autoXpPerSec:0,upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},level:1,xp:0,gems:0,totalGems:0,rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{},nick:savedNick,eventState:null};
   saveAll();updateUI();buildShop();buildAchGrid();buildCodeHints();toast("🗑️ Zapis usunięty.");
 };
 
@@ -1065,6 +1137,84 @@ window.toggleAch=function(){
   toggle.classList.toggle("open");
   toggle.textContent=grid.classList.contains("hidden")?"▼":"▲";
 };
+
+// ── NICKNAME
+let lbCurrentTab = 0;
+
+window.confirmNick = function() {
+  const val = document.getElementById("nickInput").value.trim();
+  const err = document.getElementById("nickError");
+  if (!val || val.length < 2) { err.textContent = "Nick musi mieć min. 2 znaki!"; return; }
+  if (val.length > 20) { err.textContent = "Nick max 20 znaków!"; return; }
+  state.nick = val;
+  document.getElementById("userName").textContent = val;
+  document.getElementById("nickOverlay").classList.remove("show");
+  saveAll();
+  toast("✅ Nick ustawiony: " + val);
+};
+
+window.openChangeNick = function() {
+  document.getElementById("nickInput").value = state.nick || "";
+  document.getElementById("nickError").textContent = "";
+  const box = document.getElementById("nickBox");
+  box.querySelector("h2").textContent = "✏️ Zmień nick";
+  box.querySelector("p").textContent = "Podaj nowy nick widoczny w topkach.";
+  document.getElementById("nickOverlay").classList.add("show");
+  document.getElementById("nickInput").focus();
+};
+
+// Enter to confirm nick
+document.getElementById("nickInput").addEventListener("keydown", e => {
+  if (e.key === "Enter") window.confirmNick();
+});
+
+// ── LEADERBOARD
+const LB_FIELDS = ["score","rebirths","level"];
+const LB_LABELS = ["💰 Wynik","⚡ Rebirthy","📊 Poziom"];
+const LB_MEDALS = ["🥇","🥈","🥉"];
+
+window.openLb = async function() {
+  document.getElementById("lbOverlay").classList.add("show");
+  await loadLb(lbCurrentTab);
+};
+
+window.closeLb = function() {
+  document.getElementById("lbOverlay").classList.remove("show");
+};
+
+window.switchLbTab = async function(tab) {
+  lbCurrentTab = tab;
+  [0,1,2].forEach(i => {
+    document.getElementById("lbTab"+i).classList.toggle("active", i===tab);
+  });
+  await loadLb(tab);
+};
+
+async function loadLb(tab) {
+  const statusEl = document.getElementById("lbStatus");
+  const listEl   = document.getElementById("lbList");
+  statusEl.textContent = "Ładowanie...";
+  listEl.innerHTML = "";
+  try {
+    const field = LB_FIELDS[tab];
+    const q = query(collection(db,"leaderboard"), orderBy(field,"desc"), limit(10));
+    const snap = await getDocs(q);
+    statusEl.textContent = "";
+    if (snap.empty) { statusEl.textContent = "Brak danych — zagraj więcej!"; return; }
+    snap.forEach((d, i) => {
+      const data = d.data();
+      const isMe = currentUser && d.id === currentUser.uid;
+      const row = document.createElement("div");
+      row.className = "lb-row" + (isMe ? " me" : "");
+      const rank = i < 3 ? LB_MEDALS[i] : "#"+(i+1);
+      const val = field === "score" ? fmt(data.score||0)+" pkt" : field==="rebirths" ? fmt(data.rebirths||0) : "Lvl "+(data.level||1);
+      row.innerHTML = `<span class="lb-rank">${rank}</span><span class="lb-name">${data.nick||"???"}</span><span class="lb-val">${val}</span>`;
+      listEl.appendChild(row);
+    });
+  } catch(e) {
+    statusEl.textContent = "⚠️ Błąd: " + e.message;
+  }
+}
 
 function buildCodeHints(){}
 
