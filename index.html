@@ -221,9 +221,72 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 .lb-close { padding:10px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.15); border-radius:8px; color:#888; cursor:pointer; font-size:13px; }
 .lb-close:hover { color:white; }
 #lbStatus { font-size:12px; color:#555; text-align:center; }
+/* ADMIN PANEL */
+#adminOverlay { position:fixed; inset:0; background:rgba(0,0,0,.9); z-index:10001; display:none; align-items:center; justify-content:center; }
+#adminOverlay.show { display:flex; }
+#adminBox { background:#1a0a0a; border:2px solid #ff4444; border-radius:16px; padding:24px; width:min(420px,94vw); max-height:85vh; overflow-y:auto; display:flex; flex-direction:column; gap:14px; }
+#adminBox h2 { margin:0; color:#ff4444; font-size:20px; text-align:center; }
+.admin-section { background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:14px; display:flex; flex-direction:column; gap:8px; }
+.admin-section h3 { margin:0; font-size:12px; color:#888; text-transform:uppercase; letter-spacing:1px; }
+.admin-row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+.admin-input { flex:1; min-width:80px; padding:8px 12px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2); border-radius:8px; color:white; font-size:13px; }
+.admin-input::placeholder { color:#555; }
+.admin-btn { padding:8px 14px; border:none; border-radius:8px; font-weight:bold; font-size:12px; cursor:pointer; transition:opacity .15s; white-space:nowrap; }
+.admin-btn:hover { opacity:.85; }
+.admin-btn.red   { background:#ff4444; color:white; }
+.admin-btn.green { background:#00cc66; color:#111; }
+.admin-btn.blue  { background:#0088ff; color:white; }
+.admin-btn.gold  { background:#ffd200; color:#111; }
+.admin-btn.close { background:rgba(255,255,255,.1); color:#888; border:1px solid rgba(255,255,255,.15); }
+#adminLog { font-size:11px; color:#555; margin-top:4px; min-height:14px; }
 </style>
 </head>
 <body>
+
+<!-- ADMIN PANEL -->
+<div id="adminOverlay">
+  <div id="adminBox">
+    <h2>🛡️ Panel Admina</h2>
+
+    <div class="admin-section">
+      <h3>💎 Daj Diamenty</h3>
+      <div class="admin-row">
+        <input class="admin-input" id="adminGemNick" placeholder="Nick gracza lub 'everyone'">
+        <input class="admin-input" id="adminGemAmt" type="number" placeholder="Ilość" min="1" style="max-width:90px;">
+        <button class="admin-btn green" onclick="adminGiveGems()">Daj</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>🏆 Daj Wynik (punkty)</h3>
+      <div class="admin-row">
+        <input class="admin-input" id="adminScoreNick" placeholder="Nick gracza lub 'everyone'">
+        <input class="admin-input" id="adminScoreAmt" type="number" placeholder="Ilość" min="1" style="max-width:120px;">
+        <button class="admin-btn gold" onclick="adminGiveScore()">Daj</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>✖️ Daj Mnożnik</h3>
+      <div class="admin-row">
+        <input class="admin-input" id="adminMultNick" placeholder="Nick gracza lub 'everyone'">
+        <input class="admin-input" id="adminMultAmt" type="number" placeholder="Wartość np. 5" min="0.1" step="0.1" style="max-width:120px;">
+        <button class="admin-btn blue" onclick="adminGiveMult()">Daj</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>📢 Wiadomość do wszystkich</h3>
+      <div class="admin-row">
+        <input class="admin-input" id="adminMsg" placeholder="Treść wiadomości...">
+        <button class="admin-btn red" onclick="adminSendMsg()">Wyślij</button>
+      </div>
+    </div>
+
+    <div id="adminLog"></div>
+    <button class="admin-btn close" onclick="document.getElementById('adminOverlay').classList.remove('show')">✕ Zamknij</button>
+  </div>
+</div>
 
 <div id="authOverlay">
   <div style="font-size:60px;">🖱️</div>
@@ -491,7 +554,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
                            from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs }
+import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs, where, updateDoc, serverTimestamp, addDoc, deleteDoc }
                            from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 const app  = initializeApp({
@@ -739,6 +802,7 @@ function migrate(s) {
   s.usedCodes=s.usedCodes||{};
   s.eventState=s.eventState||null;
   s.nick=s.nick||"";
+  s.claimedRewards=s.claimedRewards||{};
   if(typeof s.score!=="number"||isNaN(s.score)||s.score<0) s.score=0;
   return s;
 }
@@ -1216,10 +1280,156 @@ async function loadLb(tab) {
   }
 }
 
+// ── ADMIN SYSTEM
+const ADMIN_CODE = "MIECIOW1ADMIN2025"; // zmień na swój tajny kod!
+
+let isAdmin = false;
+
+// Sprawdź czy kod wpisany w kodach to kod admina
+const _origRedeem = window.redeemCode;
+window.redeemCode = function() {
+  const raw = document.getElementById("codeInput").value.trim().toUpperCase();
+  if (raw === ADMIN_CODE) {
+    isAdmin = true;
+    document.getElementById("codeInput").value = "";
+    document.getElementById("adminOverlay").classList.add("show");
+    document.getElementById("codeStatus").textContent = "";
+    toast("🛡️ Panel admina otwarty!");
+    return;
+  }
+  _origRedeem();
+};
+
+function adminLog(msg, ok=true) {
+  const el = document.getElementById("adminLog");
+  el.style.color = ok ? "#00ffcc" : "#f88";
+  el.textContent = msg;
+}
+
+// Daj nagrodę do konkretnego gracza lub wszystkich
+async function adminSendReward(nickTarget, rewardData) {
+  const logEl = document.getElementById("adminLog");
+  adminLog("Wysyłanie...");
+  try {
+    const target = nickTarget.trim().toLowerCase();
+    const rewardDoc = {
+      ...rewardData,
+      target: target, // "everyone" lub nick gracza małymi literami
+      sentAt: new Date().toISOString(),
+      sentBy: state.nick || currentUser.email,
+      claimed: false
+    };
+    await addDoc(collection(db, "adminRewards"), rewardDoc);
+    adminLog("✅ Nagroda wysłana do: " + (target === "everyone" ? "WSZYSTKICH" : nickTarget));
+    toast("✅ Wysłano nagrody!");
+  } catch(e) {
+    adminLog("❌ Błąd: " + e.message, false);
+  }
+}
+
+window.adminGiveGems = async function() {
+  const nick = document.getElementById("adminGemNick").value.trim();
+  const amt  = parseInt(document.getElementById("adminGemAmt").value);
+  if (!nick) { adminLog("❌ Wpisz nick lub 'everyone'", false); return; }
+  if (!amt || amt < 1) { adminLog("❌ Wpisz ilość diamentów", false); return; }
+  await adminSendReward(nick, { type:"gems", amount:amt });
+};
+
+window.adminGiveScore = async function() {
+  const nick = document.getElementById("adminScoreNick").value.trim();
+  const amt  = parseFloat(document.getElementById("adminScoreAmt").value);
+  if (!nick) { adminLog("❌ Wpisz nick lub 'everyone'", false); return; }
+  if (!amt || amt < 1) { adminLog("❌ Wpisz ilość punktów", false); return; }
+  await adminSendReward(nick, { type:"score", amount:amt });
+};
+
+window.adminGiveMult = async function() {
+  const nick = document.getElementById("adminMultNick").value.trim();
+  const amt  = parseFloat(document.getElementById("adminMultAmt").value);
+  if (!nick) { adminLog("❌ Wpisz nick lub 'everyone'", false); return; }
+  if (!amt || amt < 0.1) { adminLog("❌ Wpisz wartość mnożnika", false); return; }
+  await adminSendReward(nick, { type:"mult", amount:amt });
+};
+
+window.adminSendMsg = async function() {
+  const msg = document.getElementById("adminMsg").value.trim();
+  if (!msg) { adminLog("❌ Wpisz wiadomość", false); return; }
+  await adminSendReward("everyone", { type:"message", message:msg });
+};
+
+// Sprawdź nagrody dla gracza co 30 sekund
+async function checkAdminRewards() {
+  if (!currentUser || !state.nick) return;
+  try {
+    const myNick = state.nick.toLowerCase();
+    // Sprawdź nagrody dla mnie lub everyone
+    const q = query(
+      collection(db, "adminRewards"),
+      where("claimed", "==", false)
+    );
+    const snap = await getDocs(q);
+    for (const docSnap of snap.docs) {
+      const data = docSnap.data();
+      const tgt = (data.target || "").toLowerCase();
+      if (tgt !== "everyone" && tgt !== myNick) continue;
+
+      // Odbierz nagrodę
+      if (data.type === "gems") {
+        state.gems += data.amount;
+        state.totalGems += data.amount;
+        toast("🎁 Admin dał Ci " + data.amount + " 💎!");
+        spawnGemPop("+" + data.amount + " 💎");
+      } else if (data.type === "score") {
+        state.score += data.amount;
+        state.totalScore += data.amount;
+        toast("🎁 Admin dał Ci " + fmt(data.amount) + " pkt!");
+      } else if (data.type === "mult") {
+        state.multiplier = parseFloat((state.multiplier + data.amount).toFixed(2));
+        toast("🎁 Admin dał Ci +" + data.amount + "x mnożnik!");
+      } else if (data.type === "message") {
+        toast("📢 Admin: " + data.message);
+      }
+
+      // Oznacz jako odebrane (tylko dla spersonalizowanych — everyone zostaje)
+      if (tgt !== "everyone") {
+        await deleteDoc(doc(db, "adminRewards", docSnap.id));
+      }
+
+      updateUI(); saveAll(); checkAch();
+    }
+
+    // Dla "everyone" — zapamiętaj jakie już odebrałeś
+    if (!state.claimedRewards) state.claimedRewards = {};
+    snap.forEach(async docSnap => {
+      const data = docSnap.data();
+      if ((data.target||"").toLowerCase() !== "everyone") return;
+      if (state.claimedRewards[docSnap.id]) return;
+      state.claimedRewards[docSnap.id] = true;
+
+      if (data.type === "gems") {
+        state.gems += data.amount; state.totalGems += data.amount;
+        toast("🎁 Admin dał wszystkim " + data.amount + " 💎!");
+        spawnGemPop("+" + data.amount + " 💎");
+      } else if (data.type === "score") {
+        state.score += data.amount; state.totalScore += data.amount;
+        toast("🎁 Admin dał wszystkim " + fmt(data.amount) + " pkt!");
+      } else if (data.type === "mult") {
+        state.multiplier = parseFloat((state.multiplier + data.amount).toFixed(2));
+        toast("🎁 Admin dał wszystkim +" + data.amount + "x mnożnik!");
+      } else if (data.type === "message") {
+        toast("📢 Admin: " + data.message);
+      }
+      updateUI(); saveAll(); checkAch();
+    });
+  } catch(e) { /* cicho ignoruj błędy sieci */ }
+}
+
+setInterval(checkAdminRewards, 30000);
+
 function buildCodeHints(){}
 
 // ── START
-function startGame(){recalcAuto();loadEventState();updateUI();buildShop();buildAchGrid();buildCodeHints();requestAnimationFrame(autoTick);}
+function startGame(){recalcAuto();loadEventState();updateUI();buildShop();buildAchGrid();buildCodeHints();requestAnimationFrame(autoTick);setTimeout(checkAdminRewards,3000);}
 
 </script>
 </body>
