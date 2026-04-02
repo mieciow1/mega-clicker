@@ -239,6 +239,16 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 .admin-btn.gold  { background:#ffd200; color:#111; }
 .admin-btn.close { background:rgba(255,255,255,.1); color:#888; border:1px solid rgba(255,255,255,.15); }
 #adminLog { font-size:11px; color:#555; margin-top:4px; min-height:14px; }
+/* BOOST INDICATOR */
+#boostIndicator { position:fixed; bottom:40px; left:16px; z-index:100; display:flex; flex-direction:column; gap:6px; pointer-events:none; }
+.boost-badge { background:rgba(0,0,0,.85); border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:6px 12px; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:8px; backdrop-filter:blur(6px); position:relative; cursor:default; pointer-events:all; }
+.boost-badge .boost-bar { position:absolute; bottom:0; left:0; height:3px; border-radius:0 0 10px 10px; transition:width .5s linear; }
+.boost-badge .boost-tip { display:none; position:absolute; bottom:calc(100% + 8px); left:0; background:#111; border:1px solid #444; border-radius:8px; padding:8px 12px; font-size:11px; white-space:nowrap; z-index:300; line-height:1.8; font-weight:normal; }
+.boost-badge:hover .boost-tip { display:block; }
+.boost-mult  { border-color:rgba(255,100,0,.5);  color:#ff6400; }
+.boost-click { border-color:rgba(0,255,200,.5);  color:#00ffcc; }
+.boost-xp    { border-color:rgba(251,191,36,.5); color:#fbbf24; }
+
 </style>
 </head>
 <body>
@@ -272,6 +282,29 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
         <input class="admin-input" id="adminMultNick" placeholder="Nick gracza lub 'everyone'">
         <input class="admin-input" id="adminMultAmt" type="number" placeholder="Wartość np. 5" min="0.1" step="0.1" style="max-width:120px;">
         <button class="admin-btn blue" onclick="adminGiveMult()">Daj</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>⭐ Daj XP</h3>
+      <div class="admin-row">
+        <input class="admin-input" id="adminXpNick" placeholder="Nick gracza lub 'everyone'">
+        <input class="admin-input" id="adminXpAmt" type="number" placeholder="Ilość XP" min="1" style="max-width:120px;">
+        <button class="admin-btn" style="background:#a855f7;color:white;" onclick="adminGiveXp()">Daj</button>
+      </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>⚡ Boost czasowy</h3>
+      <div class="admin-row">
+        <input class="admin-input" id="adminBoostNick" placeholder="Nick lub 'everyone'">
+        <select class="admin-input" id="adminBoostType" style="max-width:130px;">
+          <option value="mult">✖️ Mnożnik x2</option>
+          <option value="click">🖱️ Klik x2</option>
+          <option value="xp">⭐ XP x2</option>
+        </select>
+        <input class="admin-input" id="adminBoostMins" type="number" placeholder="Minut" min="1" max="1440" style="max-width:80px;">
+        <button class="admin-btn" style="background:linear-gradient(135deg,#ff6400,#ffd200);color:#111;" onclick="adminGiveBoost()">Aktywuj</button>
       </div>
     </div>
 
@@ -549,6 +582,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 
 </div>
 <div id="toast"></div>
+<div id="boostIndicator"></div>
 
 <script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
@@ -937,7 +971,11 @@ window.casinoPlay=function(choice){
 
 // ── CLICK
 document.getElementById("clickBtn").addEventListener("click",function(e){
-  const pts=state.multiplier,xg=state.petXpBonus;
+  const clickBoost = getBoostMultiplier("click");
+  const xpBoost    = getBoostMultiplier("xp");
+  const multBoost  = getBoostMultiplier("mult");
+  const pts = state.multiplier * clickBoost * multBoost;
+  const xg  = state.petXpBonus * xpBoost;
   state.score+=pts;state.totalScore+=pts;state.totalClicks++;
   gainXP(xg);
   // 💎 co 10000 kliknięć = 1 diament
@@ -948,7 +986,7 @@ document.getElementById("clickBtn").addEventListener("click",function(e){
   }
   checkAch();updateUI();saveAll();
   spawnPop("+"+fmt(pts),state.petPopCls||"score",e.clientX-22,e.clientY-12);
-  spawnPop("+"+xg+" XP","xp",e.clientX+8,e.clientY-24);
+  spawnPop("+"+fmt(xg)+" XP","xp",e.clientX+8,e.clientY-24);
 });
 
 // ── REBIRTH
@@ -998,8 +1036,11 @@ function autoTick(){
   if(!inEvent){
     const now=Date.now(),dt=(now-lastTick)/1000;lastTick=now;
     if(state.autoPerSec>0||state.autoXpPerSec>0){
-      const g=state.autoPerSec*dt*state.multiplier;state.score+=g;state.totalScore+=g;
-      gainXP(state.autoXpPerSec*dt);updateUI();
+      const multBoost = getBoostMultiplier("mult");
+      const xpBoost   = getBoostMultiplier("xp");
+      const g=state.autoPerSec*dt*state.multiplier*multBoost;
+      state.score+=g;state.totalScore+=g;
+      gainXP(state.autoXpPerSec*dt*xpBoost);updateUI();
     }
   } else {
     lastTick=Date.now();
@@ -1351,6 +1392,23 @@ window.adminGiveMult = async function() {
   await adminSendReward(nick, { type:"mult", amount:amt });
 };
 
+window.adminGiveXp = async function() {
+  const nick = document.getElementById("adminXpNick").value.trim();
+  const amt  = parseInt(document.getElementById("adminXpAmt").value);
+  if (!nick) { adminLog("❌ Wpisz nick lub 'everyone'", false); return; }
+  if (!amt || amt < 1) { adminLog("❌ Wpisz ilość XP", false); return; }
+  await adminSendReward(nick, { type:"xp", amount:amt });
+};
+
+window.adminGiveBoost = async function() {
+  const nick = document.getElementById("adminBoostNick").value.trim();
+  const type = document.getElementById("adminBoostType").value;
+  const mins = parseInt(document.getElementById("adminBoostMins").value);
+  if (!nick) { adminLog("❌ Wpisz nick lub 'everyone'", false); return; }
+  if (!mins || mins < 1) { adminLog("❌ Wpisz czas trwania w minutach", false); return; }
+  await adminSendReward(nick, { type:"boost", boostType:type, durationMs: mins*60*1000 });
+};
+
 window.adminSendMsg = async function() {
   const msg = document.getElementById("adminMsg").value.trim();
   if (!msg) { adminLog("❌ Wpisz wiadomość", false); return; }
@@ -1394,6 +1452,13 @@ async function checkAdminRewards() {
       } else if (data.type === "mult") {
         state.multiplier = parseFloat((state.multiplier + data.amount).toFixed(2));
         toast("🎁 Admin dał " + kto + " +" + data.amount + "x mnożnik!");
+      } else if (data.type === "xp") {
+        gainXP(data.amount);
+        toast("🎁 Admin dał " + kto + " +" + fmt(data.amount) + " XP!");
+      } else if (data.type === "boost") {
+        activateBoost(data.boostType, data.durationMs);
+        const names = {mult:"✖️ Mnożnik x2", click:"🖱️ Klik x2", xp:"⭐ XP x2"};
+        toast("🎁 Admin aktywował " + kto + " boost: " + (names[data.boostType]||data.boostType) + "!");
       } else if (data.type === "message") {
         toast("📢 Admin: " + data.message);
       }
@@ -1409,6 +1474,66 @@ async function checkAdminRewards() {
 }
 
 setInterval(checkAdminRewards, 30000);
+
+// ── BOOST SYSTEM
+let activeboosts = {}; // {mult: {endsAt, multiplier}, click: {...}, xp: {...}}
+
+function activateBoost(type, durationMs) {
+  const endsAt = Date.now() + durationMs;
+  activeboosts[type] = { endsAt, multiplier: 2 };
+  updateBoostUI();
+}
+
+function getBoostMultiplier(type) {
+  const b = activeboosts[type];
+  if (!b) return 1;
+  if (Date.now() > b.endsAt) { delete activeboosts[type]; updateBoostUI(); return 1; }
+  return b.multiplier;
+}
+
+function updateBoostUI() {
+  const container = document.getElementById("boostIndicator");
+  if (!container) return;
+  container.innerHTML = "";
+  const boostInfo = {
+    mult:  { icon:"✖️", label:"Mnożnik x2", color:"#ff6400", tip:"Twój mnożnik jest x2 przez ten czas!" },
+    click: { icon:"🖱️", label:"Klik x2",    color:"#00ffcc", tip:"Każdy klik daje x2 punktów!" },
+    xp:    { icon:"⭐", label:"XP x2",       color:"#fbbf24", tip:"Zdobywasz x2 XP za każdy klik!" },
+  };
+  const now = Date.now();
+  Object.entries(activeboosts).forEach(([type, b]) => {
+    if (now > b.endsAt) { delete activeboosts[type]; return; }
+    const info = boostInfo[type] || { icon:"⚡", label:type, color:"#fff", tip:"" };
+    const remaining = b.endsAt - now;
+    const totalMs = b.endsAt - (b.endsAt - remaining); // remaining = total initially
+    const pct = Math.max(0, Math.min(100, (remaining / (remaining + (now - (b.endsAt - remaining)))) * 100));
+
+    const mins = Math.floor(remaining / 60000);
+    const secs = Math.floor((remaining % 60000) / 1000);
+    const timeStr = mins > 0 ? mins + "m " + secs + "s" : secs + "s";
+
+    const badge = document.createElement("div");
+    badge.className = "boost-badge boost-" + type;
+    badge.innerHTML = `
+      <span>${info.icon}</span>
+      <span>${info.label} — ${timeStr}</span>
+      <div class="boost-bar" style="width:${pct}%;background:${info.color};"></div>
+      <div class="boost-tip">${info.tip}<br>Pozostało: ${timeStr}</div>
+    `;
+    container.appendChild(badge);
+  });
+}
+
+// Tick boost countdown every second
+setInterval(() => {
+  const now = Date.now();
+  let any = false;
+  Object.keys(activeboosts).forEach(type => {
+    if (now > activeboosts[type].endsAt) { delete activeboosts[type]; any = true; }
+    else any = true;
+  });
+  if (document.getElementById("boostIndicator").children.length > 0 || any) updateBoostUI();
+}, 1000);
 
 function buildCodeHints(){}
 
