@@ -1362,65 +1362,49 @@ async function checkAdminRewards() {
   if (!currentUser || !state.nick) return;
   try {
     const myNick = state.nick.toLowerCase();
-    // Sprawdź nagrody dla mnie lub everyone
-    const q = query(
-      collection(db, "adminRewards"),
-      where("claimed", "==", false)
-    );
+    if (!state.claimedRewards) state.claimedRewards = {};
+
+    const q = query(collection(db, "adminRewards"), where("claimed", "==", false));
     const snap = await getDocs(q);
+    let changed = false;
+
     for (const docSnap of snap.docs) {
       const data = docSnap.data();
       const tgt = (data.target || "").toLowerCase();
+
+      // Pomiń jeśli nie dla mnie
       if (tgt !== "everyone" && tgt !== myNick) continue;
 
-      // Odbierz nagrodę
-      if (data.type === "gems") {
-        state.gems += data.amount;
-        state.totalGems += data.amount;
-        toast("🎁 Admin dał Ci " + data.amount + " 💎!");
-        spawnGemPop("+" + data.amount + " 💎");
-      } else if (data.type === "score") {
-        state.score += data.amount;
-        state.totalScore += data.amount;
-        toast("🎁 Admin dał Ci " + fmt(data.amount) + " pkt!");
-      } else if (data.type === "mult") {
-        state.multiplier = parseFloat((state.multiplier + data.amount).toFixed(2));
-        toast("🎁 Admin dał Ci +" + data.amount + "x mnożnik!");
-      } else if (data.type === "message") {
-        toast("📢 Admin: " + data.message);
-      }
+      // Pomiń jeśli już odebrałem tę nagrodę
+      if (state.claimedRewards[docSnap.id]) continue;
 
-      // Oznacz jako odebrane (tylko dla spersonalizowanych — everyone zostaje)
-      if (tgt !== "everyone") {
-        await deleteDoc(doc(db, "adminRewards", docSnap.id));
-      }
-
-      updateUI(); saveAll(); checkAch();
-    }
-
-    // Dla "everyone" — zapamiętaj jakie już odebrałeś
-    if (!state.claimedRewards) state.claimedRewards = {};
-    snap.forEach(async docSnap => {
-      const data = docSnap.data();
-      if ((data.target||"").toLowerCase() !== "everyone") return;
-      if (state.claimedRewards[docSnap.id]) return;
+      // Oznacz jako odebrane lokalnie PRZED zastosowaniem
       state.claimedRewards[docSnap.id] = true;
+      changed = true;
 
+      // Zastosuj nagrodę
+      const kto = tgt === "everyone" ? "wszystkim" : "Ci";
       if (data.type === "gems") {
         state.gems += data.amount; state.totalGems += data.amount;
-        toast("🎁 Admin dał wszystkim " + data.amount + " 💎!");
+        toast("🎁 Admin dał " + kto + " " + data.amount + " 💎!");
         spawnGemPop("+" + data.amount + " 💎");
       } else if (data.type === "score") {
         state.score += data.amount; state.totalScore += data.amount;
-        toast("🎁 Admin dał wszystkim " + fmt(data.amount) + " pkt!");
+        toast("🎁 Admin dał " + kto + " " + fmt(data.amount) + " pkt!");
       } else if (data.type === "mult") {
         state.multiplier = parseFloat((state.multiplier + data.amount).toFixed(2));
-        toast("🎁 Admin dał wszystkim +" + data.amount + "x mnożnik!");
+        toast("🎁 Admin dał " + kto + " +" + data.amount + "x mnożnik!");
       } else if (data.type === "message") {
         toast("📢 Admin: " + data.message);
       }
-      updateUI(); saveAll(); checkAch();
-    });
+
+      // Dla spersonalizowanych nagród usuń z bazy po odebraniu
+      if (tgt === myNick) {
+        try { await deleteDoc(doc(db, "adminRewards", docSnap.id)); } catch(e) {}
+      }
+    }
+
+    if (changed) { updateUI(); saveAll(); checkAch(); }
   } catch(e) { /* cicho ignoruj błędy sieci */ }
 }
 
