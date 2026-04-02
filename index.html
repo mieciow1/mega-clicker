@@ -837,7 +837,13 @@ function migrate(s) {
   s.eventState=s.eventState||null;
   s.nick=s.nick||"";
   s.claimedRewards=s.claimedRewards||{};
+  s.pet=s.pet||"brak";
+  s.petEmoji=s.petEmoji||"";
+  // Napraw multiplier jeśli jest NaN/undefined/0
+  if(typeof s.multiplier!=="number"||isNaN(s.multiplier)||s.multiplier<1) s.multiplier=1.0;
   if(typeof s.score!=="number"||isNaN(s.score)||s.score<0) s.score=0;
+  if(typeof s.autoPerSec!=="number"||isNaN(s.autoPerSec)) s.autoPerSec=0;
+  if(typeof s.autoXpPerSec!=="number"||isNaN(s.autoXpPerSec)) s.autoXpPerSec=0;
   return s;
 }
 
@@ -993,8 +999,11 @@ document.getElementById("clickBtn").addEventListener("click",function(e){
 window.doRebirth=function(n){
   const cost=10*n;if(state.score<cost){toast("Za mało punktów! Potrzebujesz "+fmt(cost)+" pkt.");return;}
   state.score-=cost;state.multiplier=parseFloat((state.multiplier+0.1*n).toFixed(2));
-  state.rebirths+=n;gainXP(5*n);checkAch();updateUI();saveAll();
-  toast("⚡ Rebirth x"+fmt(n)+"! Mnożnik: "+fmt(state.multiplier)+"x  (+"+fmt(5*n)+" XP)");
+  state.rebirths+=n;
+  const xpBoost=getBoostMultiplier("xp");
+  gainXP(5*n*xpBoost);
+  checkAch();updateUI();saveAll();
+  toast("⚡ Rebirth x"+fmt(n)+"! Mnożnik: "+fmt(state.multiplier)+"x  (+"+fmt(5*n*xpBoost)+" XP)");
   buildCodeHints();
 };
 
@@ -1034,12 +1043,12 @@ let lastTick=Date.now();
 let inEvent=false;
 function autoTick(){
   if(!inEvent){
-    const now=Date.now(),dt=(now-lastTick)/1000;lastTick=now;
+    const now=Date.now(),dt=Math.min((now-lastTick)/1000, 1);lastTick=now;
     if(state.autoPerSec>0||state.autoXpPerSec>0){
       const multBoost = getBoostMultiplier("mult");
       const xpBoost   = getBoostMultiplier("xp");
       const g=state.autoPerSec*dt*state.multiplier*multBoost;
-      state.score+=g;state.totalScore+=g;
+      if(isFinite(g)&&g>0){state.score+=g;state.totalScore+=g;}
       gainXP(state.autoXpPerSec*dt*xpBoost);updateUI();
     }
   } else {
