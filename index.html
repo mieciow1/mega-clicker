@@ -18,14 +18,12 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 #googleLoginBtn img { width:22px; height:22px; }
 #authStatus { font-size:12px; color:#555; }
 
-/* ADMIN BAR */
-#adminBar { display:none; position:fixed; bottom:36px; left:0; right:0; padding:6px 14px; background:rgba(20,0,0,.92); border-top:1px solid rgba(255,68,68,.3); border-bottom:1px solid rgba(255,68,68,.2); font-size:12px; align-items:center; gap:8px; z-index:59; flex-wrap:wrap; justify-content:center; }
-#adminBar.show { display:flex; }
-#adminBar input { padding:5px 10px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2); border-radius:6px; color:white; font-size:12px; }
-#adminBar select { padding:5px 8px; background:#1a0a0a; border:1px solid rgba(255,68,68,.4); border-radius:6px; color:white; font-size:12px; }
-#adminBar button { padding:5px 12px; border:none; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; }
-.ab-label { color:#ff6666; font-size:11px; font-weight:bold; white-space:nowrap; }
-.ab-sep { color:#444; }
+/* ADMIN NOTIFICATION BAR */
+#adminNotifBar { display:none; position:fixed; bottom:36px; left:0; right:0; padding:7px 20px; background:rgba(15,0,0,.95); border-top:2px solid #ff4444; font-size:13px; align-items:center; gap:10px; z-index:59; justify-content:center; }
+#adminNotifBar.show { display:flex; }
+#adminNotifBar .notif-text { color:white; font-weight:bold; flex:1; text-align:center; }
+#adminNotifBar .notif-close { background:none; border:none; color:#666; font-size:18px; cursor:pointer; line-height:1; }
+#adminNotifBar .notif-close:hover { color:white; }
 
 /* USER BAR */
 #userBar { display:none; position:fixed; bottom:0; left:0; right:0; padding:6px 16px; background:rgba(0,0,0,0.7); border-top:1px solid rgba(255,255,255,0.08); font-size:12px; align-items:center; gap:10px; z-index:60; justify-content:center; }
@@ -350,26 +348,10 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
   <button id="logoutBtn">Wyloguj</button>
 </div>
 
-<!-- ADMIN BAR -->
-<div id="adminBar">
-  <span class="ab-label">🛡️ ADMIN</span>
-  <span class="ab-sep">|</span>
-  <input id="abNick" placeholder="nick / everyone" style="width:110px;">
-  <select id="abType" onchange="abTypeChange()">
-    <option value="gems">💎 Diamenty</option>
-    <option value="score">🏆 Punkty</option>
-    <option value="mult">✖️ Mnożnik</option>
-    <option value="xp">⭐ XP</option>
-    <option value="boost_mult">⚡ Boost Mult x2</option>
-    <option value="boost_click">🖱️ Boost Klik x2</option>
-    <option value="boost_xp">⭐ Boost XP x2</option>
-    <option value="boost_casino">🎰 Kasyno 2x</option>
-    <option value="message">📢 Wiadomość</option>
-  </select>
-  <input id="abValue" placeholder="wartość / tekst" style="width:120px;">
-  <input id="abMins" placeholder="minut (boost)" type="number" min="1" style="width:80px;display:none;">
-  <button onclick="adminBarSend()" style="background:#ff4444;color:white;">Wyślij</button>
-  <span id="abLog" style="color:#00ffcc;font-size:11px;"></span>
+<!-- ADMIN NOTIFICATION BAR -->
+<div id="adminNotifBar">
+  <span class="notif-text" id="adminNotifText"></span>
+  <button class="notif-close" onclick="document.getElementById('adminNotifBar').classList.remove('show')">✕</button>
 </div>
 
 <!-- NICKNAME OVERLAY -->
@@ -1008,9 +990,8 @@ window.casinoPlay=function(choice){
   if(Math.random()<0.5===(choice==="RED")){
     const won = b * casinoBoost;
     state.score+=won;state.totalScore+=won;
-    eState.score+=won*2;
     const boostTxt = casinoBoost>1 ? " <span style='color:#f472b6;'>(🎰 2x boost!)</span>" : "";
-    el.innerHTML="<span style='color:#4caf50'>✅ WYGRANA! +"+fmt(won)+" pkt & +"+fmt(won*2)+" 🌈</span>"+boostTxt;
+    el.innerHTML="<span style='color:#4caf50'>✅ WYGRANA! +"+fmt(won)+" pkt</span>"+boostTxt;
     gainXP(Math.max(1,Math.floor(Math.log10(b+1))));
   } else {
     state.score-=b;
@@ -1387,10 +1368,8 @@ window.redeemCode = function() {
     isAdmin = true;
     document.getElementById("codeInput").value = "";
     document.getElementById("codeStatus").textContent = "";
-    document.getElementById("adminBar").classList.add("show");
-    // Adjust userBar bottom padding to make room for admin bar
-    document.getElementById("userBar").style.bottom = "36px";
-    toast("🛡️ Panel admina aktywowany!");
+    document.getElementById("adminOverlay").classList.add("show");
+    toast("🛡️ Panel admina otwarty!");
     return;
   }
   _origRedeem();
@@ -1497,26 +1476,28 @@ async function checkAdminRewards() {
 
       // Zastosuj nagrodę
       const kto = tgt === "everyone" ? "wszystkim" : "Ci";
+      let notifMsg = "";
       if (data.type === "gems") {
         state.gems += data.amount; state.totalGems += data.amount;
-        toast("🎁 Admin dał " + kto + " " + data.amount + " 💎!");
+        notifMsg = "🎁 Admin dał " + kto + " " + data.amount + " 💎 diamentów!";
         spawnGemPop("+" + data.amount + " 💎");
       } else if (data.type === "score") {
         state.score += data.amount; state.totalScore += data.amount;
-        toast("🎁 Admin dał " + kto + " " + fmt(data.amount) + " pkt!");
+        notifMsg = "🎁 Admin dał " + kto + " " + fmt(data.amount) + " punktów!";
       } else if (data.type === "mult") {
         state.multiplier = parseFloat((state.multiplier + data.amount).toFixed(2));
-        toast("🎁 Admin dał " + kto + " +" + data.amount + "x mnożnik!");
+        notifMsg = "🎁 Admin dał " + kto + " +" + data.amount + "x mnożnik!";
       } else if (data.type === "xp") {
         gainXP(data.amount);
-        toast("🎁 Admin dał " + kto + " +" + fmt(data.amount) + " XP!");
+        notifMsg = "🎁 Admin dał " + kto + " +" + fmt(data.amount) + " XP!";
       } else if (data.type === "boost") {
         activateBoost(data.boostType, data.durationMs);
-        const names = {mult:"✖️ Mnożnik x2", click:"🖱️ Klik x2", xp:"⭐ XP x2"};
-        toast("🎁 Admin aktywował " + kto + " boost: " + (names[data.boostType]||data.boostType) + "!");
+        const names = {mult:"✖️ Mnożnik x2", click:"🖱️ Klik x2", xp:"⭐ XP x2", casino:"🎰 Kasyno 2x"};
+        notifMsg = "⚡ Admin aktywował boost dla " + kto + ": " + (names[data.boostType]||data.boostType) + "!";
       } else if (data.type === "message") {
-        toast("📢 Admin: " + data.message);
+        notifMsg = "📢 " + data.message;
       }
+      if (notifMsg) showAdminNotif(notifMsg);
 
       // Dla spersonalizowanych nagród usuń z bazy po odebraniu
       if (tgt === myNick) {
@@ -1591,53 +1572,18 @@ setInterval(() => {
   if (document.getElementById("boostIndicator").children.length > 0 || any) updateBoostUI();
 }, 1000);
 
-// ── ADMIN BAR JS
-window.abTypeChange = function() {
-  const type = document.getElementById("abType").value;
-  const minsEl = document.getElementById("abMins");
-  const valEl  = document.getElementById("abValue");
-  if (type.startsWith("boost_")) {
-    minsEl.style.display = "inline";
-    valEl.placeholder = "wartość (np. 2)";
-  } else if (type === "message") {
-    minsEl.style.display = "none";
-    valEl.placeholder = "treść wiadomości";
-  } else {
-    minsEl.style.display = "none";
-    valEl.placeholder = "wartość";
-  }
-};
-
-window.adminBarSend = async function() {
-  const nick  = document.getElementById("abNick").value.trim();
-  const type  = document.getElementById("abType").value;
-  const value = document.getElementById("abValue").value.trim();
-  const mins  = parseInt(document.getElementById("abMins").value) || 0;
-  const logEl = document.getElementById("abLog");
-
-  if (!nick) { logEl.style.color="#f88"; logEl.textContent="❌ Wpisz nick!"; return; }
-
-  logEl.style.color="#555"; logEl.textContent="Wysyłanie...";
-
-  try {
-    let rewardData = {};
-    if (type === "gems")   rewardData = { type:"gems",  amount: parseFloat(value)||0 };
-    else if (type === "score") rewardData = { type:"score", amount: parseFloat(value)||0 };
-    else if (type === "mult")  rewardData = { type:"mult",  amount: parseFloat(value)||0 };
-    else if (type === "xp")    rewardData = { type:"xp",    amount: parseFloat(value)||0 };
-    else if (type === "boost_mult")  rewardData = { type:"boost", boostType:"mult",  durationMs: mins*60000, amount: parseFloat(value)||2 };
-    else if (type === "boost_click") rewardData = { type:"boost", boostType:"click", durationMs: mins*60000, amount: parseFloat(value)||2 };
-    else if (type === "boost_casino")  rewardData = { type:"boost", boostType:"casino", durationMs: mins*60000, amount: 2 };
-    else if (type === "message") rewardData = { type:"message", message: value };
-
-    await adminSendReward(nick, rewardData);
-    logEl.style.color="#00ffcc";
-    logEl.textContent="✅ Wysłano do " + (nick.toLowerCase()==="everyone"?"WSZYSTKICH":nick);
-    document.getElementById("abValue").value = "";
-  } catch(e) {
-    logEl.style.color="#f88"; logEl.textContent="❌ " + e.message;
-  }
-};
+// ── ADMIN NOTIFICATION BAR
+let adminNotifTimer = null;
+function showAdminNotif(msg) {
+  const bar  = document.getElementById("adminNotifBar");
+  const text = document.getElementById("adminNotifText");
+  if (!bar || !text) { toast(msg); return; }
+  text.textContent = msg;
+  bar.classList.add("show");
+  clearTimeout(adminNotifTimer);
+  adminNotifTimer = setTimeout(() => bar.classList.remove("show"), 8000);
+  toast(msg);
+}
 
 function buildCodeHints(){}
 
