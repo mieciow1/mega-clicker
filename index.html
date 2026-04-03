@@ -272,23 +272,21 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 .idx-tab:not(.active){ opacity:.45; }
 #indexGrid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; padding:16px; overflow-y:auto; flex:1; }
 .idx-cell { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:10px 6px; text-align:center; font-size:11px; display:flex; flex-direction:column; align-items:center; gap:4px; min-height:80px; justify-content:center; }
-.idx-cell.found { border-color:rgba(0,255,180,.5); background:rgba(0,100,60,.2); }
-.idx-cell.found-gold { border-color:rgba(255,215,0,.7); background:rgba(100,70,0,.3); }
-.idx-cell.found-rainbow { border-color:rgba(255,0,128,.7); background:rgba(80,0,80,.3); animation:rainbowBorder 2s linear infinite; }
-@keyframes rainbowBorder { 0%{border-color:#ff0080} 25%{border-color:#ffd200} 50%{border-color:#00ff80} 75%{border-color:#00ffcc} 100%{border-color:#ff0080} }
+.idx-cell.found         { border-color:rgba(0,255,180,.5); background:rgba(0,100,60,.2); }
+.idx-cell.found-gold    { border-color:rgba(255,215,0,.7);  background:rgba(100,70,0,.3); }
+.idx-cell.found-rainbow { border-color:rgba(255,0,128,.7);  background:rgba(80,0,80,.3); animation:rainbowBorderAnim 2s linear infinite; }
+@keyframes rainbowBorderAnim { 0%{border-color:#ff0080} 25%{border-color:#ffd200} 50%{border-color:#00ff80} 75%{border-color:#00ffcc} 100%{border-color:#ff0080} }
 .idx-emoji { font-size:22px; }
-.idx-name { font-size:11px; color:#ccc; }
+.idx-name  { font-size:11px; color:#ccc; }
 .idx-status { font-size:16px; }
 .idx-rarity { font-size:10px; font-weight:bold; margin-top:2px; }
 .idx-rarity.gold { color:#ffd700; }
 .idx-rarity.rainbow { background:linear-gradient(90deg,#ff0080,#ffd200,#00ffcc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 #indexCloseBtn { margin:0 20px 16px; padding:10px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); border-radius:10px; color:white; cursor:pointer; font-size:13px; width:calc(100% - 40px); }
 #indexCloseBtn:hover { background:rgba(255,255,255,.15); }
-/* INDEX button */
 #openIndexBtn { width:80px; height:80px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.2); border-radius:16px; cursor:pointer; font-size:11px; color:#ccc; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; transition:background .15s; align-self:center; }
 #openIndexBtn:hover { background:rgba(255,255,255,.14); }
 #openIndexBtn .idx-count { font-size:10px; color:#00ffcc; font-weight:bold; }
-/* GOLD/RAINBOW pop */
 .pop.gold-pop { color:#ffd700; font-size:20px; text-shadow:0 0 8px #ffd700; }
 .pop.rainbow-pop { font-size:20px; background:linear-gradient(90deg,#ff0080,#ffd200,#00ffcc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 
@@ -639,7 +637,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 
 <script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
                            from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs, where, updateDoc, serverTimestamp, addDoc, deleteDoc }
                            from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
@@ -662,18 +660,23 @@ let cloudTimer  = null;
 document.getElementById("googleLoginBtn").addEventListener("click", async () => {
   const statusEl = document.getElementById("authStatus");
   statusEl.textContent = "Logowanie...";
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
   try {
-    const provider = new GoogleAuthProvider();
-    provider.setCustomParameters({ prompt: "select_account" });
-    const result = await signInWithPopup(auth, provider);
-    // onAuthStateChanged zajmie sie reszta
+    // Try popup first (works on direct page load)
+    await signInWithPopup(auth, provider);
   } catch(e) {
-    if (e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request") {
-      statusEl.textContent = "Zaloguj sie aby grac.";
-    } else if (e.code === "auth/popup-blocked") {
-      statusEl.textContent = "Popup zablokowany! Zezwol na popupy dla tej strony.";
+    if (e.code === "auth/popup-blocked" || e.code === "auth/popup-closed-by-user" ||
+        e.code === "auth/cancelled-popup-request" || e.code === "auth/operation-not-supported-in-this-environment") {
+      // Popup blocked (e.g. inside Google Sites iframe) — fall back to redirect
+      statusEl.textContent = "Przekierowuję do logowania...";
+      try {
+        await signInWithRedirect(auth, provider);
+      } catch(e2) {
+        statusEl.textContent = "Błąd logowania: " + e2.message;
+      }
     } else {
-      statusEl.textContent = "Blad: " + e.message;
+      statusEl.textContent = "Błąd: " + e.message;
     }
   }
 });
@@ -682,6 +685,14 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
 });
 
 // ── AUTH STATE
+// Handle redirect result (fires after redirect-based login)
+getRedirectResult(auth).catch(e => {
+  if (e && e.code) {
+    const el = document.getElementById("authStatus");
+    if (el) el.textContent = "Błąd logowania: " + e.message;
+  }
+});
+
 onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
@@ -1009,40 +1020,32 @@ window.resetGame=function(){
 function buyEgg(egg){
   if(egg.gemCost>0){if(state.gems<egg.gemCost){toast("Za mało 💎! Potrzebujesz "+egg.gemCost);return;}state.gems-=egg.gemCost;}
   else{if(state.level<egg.minLvl){toast("Wymagany poziom "+egg.minLvl+"!");return;}if(state.score<egg.cost){toast("Za mało punktów!");return;}state.score-=egg.cost;}
-  let r=Math.random(),c=0,ch=egg.pets[egg.pets.length-1];
-  for(const p of egg.pets){c+=p.w;if(r<c){ch=p;break;}}
-
-  // ── GOLD / RAINBOW roll (1% gold, 0.1% rainbow)
-  let rarity = "normal";
-  const rarityRoll = Math.random();
-  if(rarityRoll < 0.001) rarity = "rainbow";
-  else if(rarityRoll < 0.01) rarity = "gold";
-
-  // stats multipliers: gold=5x, rainbow=10x
-  const rarityMult = rarity==="rainbow" ? 10 : rarity==="gold" ? 5 : 1;
-  const finalM  = parseFloat((ch.m  * rarityMult).toFixed(2));
-  const finalXp = Math.round(ch.xp * rarityMult);
-
+  let r=Math.random(),cv=0,ch=egg.pets[egg.pets.length-1];
+  for(const p of egg.pets){cv+=p.w;if(r<cv){ch=p;break;}}
+  // Gold 1% / Rainbow 0.1%
+  let rarity="normal";
+  const rr=Math.random();
+  if(rr<0.001) rarity="rainbow";
+  else if(rr<0.01) rarity="gold";
+  const rm = rarity==="rainbow"?10:rarity==="gold"?5:1;
+  const finalM  = parseFloat((ch.m*rm).toFixed(2));
+  const finalXp = Math.round(ch.xp*rm);
   state.multiplier=parseFloat((state.multiplier+finalM).toFixed(2));
-  const rarityTag = rarity==="rainbow" ? " 🌈" : rarity==="gold" ? " ⭐" : "";
-  state.pet=ch.n+rarityTag+" (+"+finalM+"x/+"+finalXp+" XP)";
-  state.petEmoji=ch.n.split(" ")[0];
+  const rtag = rarity==="rainbow"?" 🌈":rarity==="gold"?" ⭐":"";
+  state.pet=ch.n+rtag+" (+"+finalM+"x/+"+finalXp+" XP)";state.petEmoji=ch.n.split(" ")[0];
   state.petXpBonus=finalXp;state.petPopCls=egg.popCls||"score";state.totalPets++;
-
-  // ── Record in index
+  // Record in petIndex
   if(!state.petIndex) state.petIndex={};
-  const petKey = ch.n;
-  if(!state.petIndex[petKey]) state.petIndex[petKey]={normal:false,gold:false,rainbow:false};
-  state.petIndex[petKey][rarity]=true;
-
+  const pk=ch.n;
+  if(!state.petIndex[pk]) state.petIndex[pk]={normal:false,gold:false,rainbow:false};
+  state.petIndex[pk][rarity]=true;
   checkAch();updateUI();buildIndexCount();saveAll();
-
   if(rarity==="rainbow"){
     spawnPop("🌈 RAINBOW!","rainbow-pop",window.innerWidth/2-50,window.innerHeight/2-80);
-    toast("🌈✨ RAINBOW "+ch.n+"! → +"+finalM+"x mnożnik (10x) & +"+finalXp+" XP/klik!");
+    toast("🌈✨ RAINBOW "+ch.n+"! → +"+finalM+"x mnożnik (10x!) & +"+finalXp+" XP/klik!");
   } else if(rarity==="gold"){
     spawnPop("⭐ GOLD!","gold-pop",window.innerWidth/2-40,window.innerHeight/2-80);
-    toast("⭐ GOLD "+ch.n+"! → +"+finalM+"x mnożnik (5x) & +"+finalXp+" XP/klik!");
+    toast("⭐ GOLD "+ch.n+"! → +"+finalM+"x mnożnik (5x!) & +"+finalXp+" XP/klik!");
   } else {
     toast("🎉 "+ch.n+" → +"+finalM+"x mnożnik & +"+finalXp+" XP/klik!");
   }
@@ -1664,89 +1667,55 @@ function buildCodeHints(){}
 // ── START
 
 // ── PET INDEX
-let currentIdxTab = "normal";
-
-function getAllPets(){
+let currentIdxTab="normal";
+function getAllIndexPets(){
   const pets=[];
-  EGGS.forEach(egg=>{
-    egg.pets.forEach(p=>{
-      if(!pets.find(x=>x.n===p.n)) pets.push({n:p.n,emoji:p.n.split(" ")[0],eggId:egg.id});
-    });
-  });
+  EGGS.forEach(egg=>{egg.pets.forEach(p=>{if(!pets.find(x=>x.n===p.n))pets.push({n:p.n,emoji:p.n.split(" ")[0]});});});
   return pets;
 }
-
 function buildIndexCount(){
-  const all=getAllPets();
-  const total=all.length;
+  const all=getAllIndexPets();
   let found=0;
-  all.forEach(p=>{
-    const rec=state.petIndex&&state.petIndex[p.n];
-    if(rec&&(rec.normal||rec.gold||rec.rainbow)) found++;
-  });
+  all.forEach(p=>{const rec=state.petIndex&&state.petIndex[p.n];if(rec&&(rec.normal||rec.gold||rec.rainbow))found++;});
   const el=document.getElementById("indexCount");
-  if(el) el.textContent=found+"/"+total;
+  if(el) el.textContent=found+"/"+all.length;
 }
-
 function switchIdxTab(tab){
   currentIdxTab=tab;
-  document.querySelectorAll(".idx-tab").forEach(b=>{
-    b.classList.toggle("active", b.classList.contains(tab));
-  });
+  document.querySelectorAll(".idx-tab").forEach(b=>b.classList.toggle("active",b.classList.contains(tab)));
   buildIndexGrid();
 }
-
 function buildIndexGrid(){
-  const el=document.getElementById("indexGrid");
-  if(!el)return;
-  el.innerHTML="";
-  const all=getAllPets();
-  all.forEach(p=>{
+  const el=document.getElementById("indexGrid");if(!el)return;el.innerHTML="";
+  getAllIndexPets().forEach(p=>{
     const rec=(state.petIndex&&state.petIndex[p.n])||{};
-    const hasVariant = rec[currentIdxTab];
-    const cell=document.createElement("div");
-    let cellClass="idx-cell";
-    if(hasVariant){
-      if(currentIdxTab==="rainbow") cellClass+=" found-rainbow";
-      else if(currentIdxTab==="gold") cellClass+=" found-gold";
-      else cellClass+=" found";
-    }
-    cell.className=cellClass;
-    let rarityLabel="";
-    if(currentIdxTab==="gold") rarityLabel="<div class='idx-rarity gold'>GOLD ⭐</div>";
-    if(currentIdxTab==="rainbow") rarityLabel="<div class='idx-rarity rainbow'>RAINBOW 🌈</div>";
-    cell.innerHTML=
-      "<div class='idx-emoji'>"+(hasVariant?p.emoji:"❓")+"</div>"+
-      "<div class='idx-status'>"+(hasVariant?"✅":"❌")+"</div>"+
-      "<div class='idx-name'>"+(hasVariant?p.n.replace(/^\S+ /,""):"???")+"</div>"+
-      rarityLabel;
+    const has=rec[currentIdxTab];
+    let cls="idx-cell";
+    if(has){ cls+=currentIdxTab==="rainbow"?" found-rainbow":currentIdxTab==="gold"?" found-gold":" found"; }
+    const cell=document.createElement("div");cell.className=cls;
+    let rl="";
+    if(currentIdxTab==="gold")    rl="<div class='idx-rarity gold'>GOLD ⭐</div>";
+    if(currentIdxTab==="rainbow") rl="<div class='idx-rarity rainbow'>RAINBOW 🌈</div>";
+    cell.innerHTML="<div class='idx-emoji'>"+(has?p.emoji:"❓")+"</div><div class='idx-status'>"+(has?"✅":"❌")+"</div><div class='idx-name'>"+(has?p.n.replace(/^\S+ /,""):"???")+"</div>"+rl;
     el.appendChild(cell);
   });
 }
-
-window.openIndex=function(){
-  buildIndexGrid();
-  buildIndexCount();
-  document.getElementById("indexOverlay").classList.add("show");
-};
-window.closeIndex=function(){
-  document.getElementById("indexOverlay").classList.remove("show");
-};
+window.openIndex=function(){ buildIndexGrid();buildIndexCount();document.getElementById("indexOverlay").classList.add("show"); };
+window.closeIndex=function(){ document.getElementById("indexOverlay").classList.remove("show"); };
 window.switchIdxTab=switchIdxTab;
 
-function startGame(){recalcAuto();loadEventState();updateUI();buildShop();buildAchGrid();buildCodeHints();requestAnimationFrame(autoTick);setTimeout(checkAdminRewards,3000);}
+function startGame(){recalcAuto();loadEventState();updateUI();buildShop();buildAchGrid();buildCodeHints();buildIndexCount();requestAnimationFrame(autoTick);setTimeout(checkAdminRewards,3000);}
 
 </script>
 
-<!-- INDEX OVERLAY -->
 <div id="indexOverlay">
   <div id="indexBox">
     <div id="indexHeader">
       <h2>📖 Indeks Petów</h2>
       <div class="idx-tabs">
         <button class="idx-tab normal active" onclick="switchIdxTab('normal')">Normal</button>
-        <button class="idx-tab gold" onclick="switchIdxTab('gold')">⭐ Gold</button>
-        <button class="idx-tab rainbow" onclick="switchIdxTab('rainbow')">🌈 Rainbow</button>
+        <button class="idx-tab gold"          onclick="switchIdxTab('gold')">⭐ Gold</button>
+        <button class="idx-tab rainbow"       onclick="switchIdxTab('rainbow')">🌈 Rainbow</button>
       </div>
     </div>
     <div id="indexGrid"></div>
