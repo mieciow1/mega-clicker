@@ -18,6 +18,15 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 #googleLoginBtn img { width:22px; height:22px; }
 #authStatus { font-size:12px; color:#555; }
 
+/* ADMIN BAR */
+#adminBar { display:none; position:fixed; bottom:36px; left:0; right:0; padding:6px 14px; background:rgba(20,0,0,.92); border-top:1px solid rgba(255,68,68,.3); border-bottom:1px solid rgba(255,68,68,.2); font-size:12px; align-items:center; gap:8px; z-index:59; flex-wrap:wrap; justify-content:center; }
+#adminBar.show { display:flex; }
+#adminBar input { padding:5px 10px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2); border-radius:6px; color:white; font-size:12px; }
+#adminBar select { padding:5px 8px; background:#1a0a0a; border:1px solid rgba(255,68,68,.4); border-radius:6px; color:white; font-size:12px; }
+#adminBar button { padding:5px 12px; border:none; border-radius:6px; font-size:11px; font-weight:bold; cursor:pointer; }
+.ab-label { color:#ff6666; font-size:11px; font-weight:bold; white-space:nowrap; }
+.ab-sep { color:#444; }
+
 /* USER BAR */
 #userBar { display:none; position:fixed; bottom:0; left:0; right:0; padding:6px 16px; background:rgba(0,0,0,0.7); border-top:1px solid rgba(255,255,255,0.08); font-size:12px; align-items:center; gap:10px; z-index:60; justify-content:center; }
 #userBar img { width:24px; height:24px; border-radius:50%; }
@@ -341,6 +350,28 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
   <button id="logoutBtn">Wyloguj</button>
 </div>
 
+<!-- ADMIN BAR -->
+<div id="adminBar">
+  <span class="ab-label">🛡️ ADMIN</span>
+  <span class="ab-sep">|</span>
+  <input id="abNick" placeholder="nick / everyone" style="width:110px;">
+  <select id="abType" onchange="abTypeChange()">
+    <option value="gems">💎 Diamenty</option>
+    <option value="score">🏆 Punkty</option>
+    <option value="mult">✖️ Mnożnik</option>
+    <option value="xp">⭐ XP</option>
+    <option value="boost_mult">⚡ Boost Mult x2</option>
+    <option value="boost_click">🖱️ Boost Klik x2</option>
+    <option value="boost_xp">⭐ Boost XP x2</option>
+    <option value="boost_casino">🎰 Kasyno 2x</option>
+    <option value="message">📢 Wiadomość</option>
+  </select>
+  <input id="abValue" placeholder="wartość / tekst" style="width:120px;">
+  <input id="abMins" placeholder="minut (boost)" type="number" min="1" style="width:80px;display:none;">
+  <button onclick="adminBarSend()" style="background:#ff4444;color:white;">Wyślij</button>
+  <span id="abLog" style="color:#00ffcc;font-size:11px;"></span>
+</div>
+
 <!-- NICKNAME OVERLAY -->
 <div id="nickOverlay">
   <div id="nickBox">
@@ -542,6 +573,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 
   <div class="card">
     <h3>Kasyno (50/50)</h3>
+    <p style="font-size:11px;color:#666;margin:0 0 10px;">Każda gra kosztuje <b style="color:#f472b6;">5 💎</b>. Wygrana = 2x zakład w punktach!</p>
     <div class="casino-row">
       <input type="number" id="betInput" placeholder="Kwota zakładu" min="1">
       <button class="bet-btn" id="redBtn" onclick="casinoPlay('RED')">🔴 CZERWONY</button>
@@ -969,9 +1001,21 @@ EGGS.forEach(e=>{const el=document.getElementById(e.id);if(el)el.addEventListene
 window.casinoPlay=function(choice){
   const b=parseFloat(document.getElementById("betInput").value),el=document.getElementById("casinoResult");
   if(isNaN(b)||b<=0){el.innerHTML="<span style='color:#f88'>Wpisz kwotę.</span>";return;}
-  if(state.score<b){el.innerHTML="<span style='color:#f88'>Nie masz tyle!</span>";return;}
-  if(Math.random()<0.5===( choice==="RED")){state.score+=b;state.totalScore+=b;el.innerHTML="<span style='color:#4caf50'>✅ WYGRANA! +"+fmt(b)+" pkt</span>";gainXP(Math.max(1,Math.floor(Math.log10(b+1))));}
-  else{state.score-=b;el.innerHTML="<span style='color:#f44'>❌ PRZEGRANA! -"+fmt(b)+" pkt</span>";}
+  if(state.gems<5){el.innerHTML="<span style='color:#f88'>Potrzebujesz 5 💎 aby zagrać!</span>";return;}
+  if(state.score<b){el.innerHTML="<span style='color:#f88'>Nie masz tyle punktów!</span>";return;}
+  state.gems-=5;
+  const casinoBoost = getBoostMultiplier("casino");
+  if(Math.random()<0.5===(choice==="RED")){
+    const won = b * casinoBoost;
+    state.score+=won;state.totalScore+=won;
+    eState.score+=won*2;
+    const boostTxt = casinoBoost>1 ? " <span style='color:#f472b6;'>(🎰 2x boost!)</span>" : "";
+    el.innerHTML="<span style='color:#4caf50'>✅ WYGRANA! +"+fmt(won)+" pkt & +"+fmt(won*2)+" 🌈</span>"+boostTxt;
+    gainXP(Math.max(1,Math.floor(Math.log10(b+1))));
+  } else {
+    state.score-=b;
+    el.innerHTML="<span style='color:#f44'>❌ PRZEGRANA! -"+fmt(b)+" pkt</span>";
+  }
   checkAch();updateUI();saveAll();
 };
 
@@ -1342,9 +1386,11 @@ window.redeemCode = function() {
   if (raw === ADMIN_CODE) {
     isAdmin = true;
     document.getElementById("codeInput").value = "";
-    document.getElementById("adminOverlay").classList.add("show");
     document.getElementById("codeStatus").textContent = "";
-    toast("🛡️ Panel admina otwarty!");
+    document.getElementById("adminBar").classList.add("show");
+    // Adjust userBar bottom padding to make room for admin bar
+    document.getElementById("userBar").style.bottom = "36px";
+    toast("🛡️ Panel admina aktywowany!");
     return;
   }
   _origRedeem();
@@ -1505,9 +1551,10 @@ function updateBoostUI() {
   if (!container) return;
   container.innerHTML = "";
   const boostInfo = {
-    mult:  { icon:"✖️", label:"Mnożnik x2", color:"#ff6400", tip:"Twój mnożnik jest x2 przez ten czas!" },
-    click: { icon:"🖱️", label:"Klik x2",    color:"#00ffcc", tip:"Każdy klik daje x2 punktów!" },
-    xp:    { icon:"⭐", label:"XP x2",       color:"#fbbf24", tip:"Zdobywasz x2 XP za każdy klik!" },
+    mult:   { icon:"✖️", label:"Mnożnik x2", color:"#ff6400", tip:"Twój mnożnik jest x2 przez ten czas!" },
+    click:  { icon:"🖱️", label:"Klik x2",    color:"#00ffcc", tip:"Każdy klik daje x2 punktów!" },
+    xp:     { icon:"⭐", label:"XP x2",       color:"#fbbf24", tip:"Zdobywasz x2 XP za każdy klik!" },
+    casino: { icon:"🎰", label:"Kasyno 2x",   color:"#f472b6", tip:"Wygrane w kasynie są podwójne!" },
   };
   const now = Date.now();
   Object.entries(activeboosts).forEach(([type, b]) => {
@@ -1543,6 +1590,54 @@ setInterval(() => {
   });
   if (document.getElementById("boostIndicator").children.length > 0 || any) updateBoostUI();
 }, 1000);
+
+// ── ADMIN BAR JS
+window.abTypeChange = function() {
+  const type = document.getElementById("abType").value;
+  const minsEl = document.getElementById("abMins");
+  const valEl  = document.getElementById("abValue");
+  if (type.startsWith("boost_")) {
+    minsEl.style.display = "inline";
+    valEl.placeholder = "wartość (np. 2)";
+  } else if (type === "message") {
+    minsEl.style.display = "none";
+    valEl.placeholder = "treść wiadomości";
+  } else {
+    minsEl.style.display = "none";
+    valEl.placeholder = "wartość";
+  }
+};
+
+window.adminBarSend = async function() {
+  const nick  = document.getElementById("abNick").value.trim();
+  const type  = document.getElementById("abType").value;
+  const value = document.getElementById("abValue").value.trim();
+  const mins  = parseInt(document.getElementById("abMins").value) || 0;
+  const logEl = document.getElementById("abLog");
+
+  if (!nick) { logEl.style.color="#f88"; logEl.textContent="❌ Wpisz nick!"; return; }
+
+  logEl.style.color="#555"; logEl.textContent="Wysyłanie...";
+
+  try {
+    let rewardData = {};
+    if (type === "gems")   rewardData = { type:"gems",  amount: parseFloat(value)||0 };
+    else if (type === "score") rewardData = { type:"score", amount: parseFloat(value)||0 };
+    else if (type === "mult")  rewardData = { type:"mult",  amount: parseFloat(value)||0 };
+    else if (type === "xp")    rewardData = { type:"xp",    amount: parseFloat(value)||0 };
+    else if (type === "boost_mult")  rewardData = { type:"boost", boostType:"mult",  durationMs: mins*60000, amount: parseFloat(value)||2 };
+    else if (type === "boost_click") rewardData = { type:"boost", boostType:"click", durationMs: mins*60000, amount: parseFloat(value)||2 };
+    else if (type === "boost_casino")  rewardData = { type:"boost", boostType:"casino", durationMs: mins*60000, amount: 2 };
+    else if (type === "message") rewardData = { type:"message", message: value };
+
+    await adminSendReward(nick, rewardData);
+    logEl.style.color="#00ffcc";
+    logEl.textContent="✅ Wysłano do " + (nick.toLowerCase()==="everyone"?"WSZYSTKICH":nick);
+    document.getElementById("abValue").value = "";
+  } catch(e) {
+    logEl.style.color="#f88"; logEl.textContent="❌ " + e.message;
+  }
+};
 
 function buildCodeHints(){}
 
