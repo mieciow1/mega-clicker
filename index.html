@@ -292,29 +292,6 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 .pop.gold-pop { color:#ffd700; font-size:20px; text-shadow:0 0 8px #ffd700; }
 .pop.rainbow-pop { font-size:20px; background:linear-gradient(90deg,#ff0080,#ffd200,#00ffcc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 
-
-/* TYTUŁY */
-.title-card { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:16px 20px; width:min(440px,92vw); }
-.title-card h3 { margin:0 0 12px; font-size:12px; color:#777; text-transform:uppercase; letter-spacing:1px; }
-.title-row { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-radius:10px; margin-bottom:8px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); }
-.title-row:last-child { margin-bottom:0; }
-.title-info { display:flex; flex-direction:column; gap:3px; }
-.title-name { font-size:14px; font-weight:bold; }
-.title-name.normal { color:#ccc; }
-.title-name.gold-title { color:#ffd700; text-shadow:0 0 6px rgba(255,215,0,.4); }
-.title-name.rainbow-title { background:linear-gradient(90deg,#ff0080,#ffd200,#00ff80,#00ffcc,#8000ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; animation:rainbowShift 3s linear infinite; background-size:200%; }
-@keyframes rainbowShift { 0%{background-position:0%} 100%{background-position:200%} }
-.title-unlock-req { font-size:10px; color:#555; }
-.title-effect { font-size:11px; color:#888; }
-.title-btns { display:flex; gap:6px; }
-.equip-btn { padding:6px 14px; border:none; border-radius:8px; font-size:12px; font-weight:bold; cursor:pointer; transition:opacity .15s; white-space:nowrap; }
-.equip-btn.equip   { background:#00ffcc; color:#111; }
-.equip-btn.unequip { background:rgba(255,60,60,.25); border:1px solid rgba(255,60,60,.4); color:#ff6b6b; }
-.equip-btn.locked  { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); color:#555; cursor:not-allowed; }
-.equip-btn:hover:not(.locked) { opacity:.85; }
-.title-equipped-badge { font-size:10px; color:#00ffcc; margin-left:6px; }
-#activeTitleDisplay { font-size:11px; color:#666; margin-top:8px; min-height:14px; }
-
 </style>
 </head>
 <body>
@@ -645,13 +622,6 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
     <div id="codeStatus"></div>
   </div>
 
-
-  <div class="title-card" id="titleCard">
-    <h3>🥇 Tytuły</h3>
-    <div id="titleList"></div>
-    <div id="activeTitleDisplay"></div>
-  </div>
-
   <div class="card">
     <h3>Zapis gry</h3>
     <p style="font-size:11px;color:#666;margin:0 0 10px;">Gra zapisuje się automatycznie w chmurze (Firebase). Eksport/Import to backup na wszelki wypadek.</p>
@@ -906,7 +876,7 @@ let state = {
   autoPerSec:0,autoXpPerSec:0,
   upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},
   level:1,xp:0,gems:0,totalGems:0,
-  rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{},nick:"",petIndex:{},equippedTitle:""
+  rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{},nick:"",petIndex:{}
 };
 
 function migrate(s) {
@@ -923,7 +893,6 @@ function migrate(s) {
   s.pet=s.pet||"brak";
   s.petEmoji=s.petEmoji||"";
   s.petIndex=s.petIndex||{};
-  s.equippedTitle=s.equippedTitle||"";
   // Napraw multiplier jeśli jest NaN/undefined/0
   if(typeof s.multiplier!=="number"||isNaN(s.multiplier)||s.multiplier<1) s.multiplier=1.0;
   if(typeof s.score!=="number"||isNaN(s.score)||s.score<0) s.score=0;
@@ -1032,7 +1001,7 @@ window.importSave=function(){
 window.resetGame=function(){
   if(!confirm("Zresetować wszystko?"))return;
   const savedNick = state.nick;
-  state={score:0,multiplier:1.0,pet:"brak",petEmoji:"",petXpBonus:1,petPopCls:"score",autoPerSec:0,autoXpPerSec:0,upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},level:1,xp:0,gems:0,totalGems:0,rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{},nick:savedNick,eventState:null,petIndex:{},equippedTitle:""};
+  state={score:0,multiplier:1.0,pet:"brak",petEmoji:"",petXpBonus:1,petPopCls:"score",autoPerSec:0,autoXpPerSec:0,upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},level:1,xp:0,gems:0,totalGems:0,rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{},nick:savedNick,eventState:null};
   saveAll();updateUI();buildShop();buildAchGrid();buildCodeHints();toast("🗑️ Zapis usunięty.");
 };
 
@@ -1088,13 +1057,11 @@ window.casinoPlay=function(choice){
   if(state.score<b){el.innerHTML="<span style='color:#f88'>Nie masz tyle punktów!</span>";return;}
   state.gems-=5;
   const casinoBoost = getBoostMultiplier("casino");
-  const titleCasinoBoost = getTitleEffect("casino");
   if(Math.random()<0.5===(choice==="RED")){
-    const won = b * casinoBoost * titleCasinoBoost;
+    const won = b * casinoBoost;
     state.score+=won;state.totalScore+=won;
     const boostTxt = casinoBoost>1 ? " <span style='color:#f472b6;'>(🎰 2x boost!)</span>" : "";
-    const titleTxt = titleCasinoBoost>1 ? " <span style='color:#ffd700;'>(⭐ Złotko!)</span>" : "";
-    el.innerHTML="<span style='color:#4caf50'>✅ WYGRANA! +"+fmt(won)+" pkt</span>"+boostTxt+titleTxt;
+    el.innerHTML="<span style='color:#4caf50'>✅ WYGRANA! +"+fmt(won)+" pkt</span>"+boostTxt;
     gainXP(Math.max(1,Math.floor(Math.log10(b+1))));
   } else {
     state.score-=b;
@@ -1108,8 +1075,7 @@ document.getElementById("clickBtn").addEventListener("click",function(e){
   const clickBoost = getBoostMultiplier("click");
   const xpBoost    = getBoostMultiplier("xp");
   const multBoost  = getBoostMultiplier("mult");
-  const titleMultBoost = getTitleEffect("multi");
-  const pts = state.multiplier * clickBoost * multBoost * titleMultBoost;
+  const pts = state.multiplier * clickBoost * multBoost;
   const xg  = state.petXpBonus * xpBoost;
   state.score+=pts;state.totalScore+=pts;state.totalClicks++;
   gainXP(xg);
@@ -1144,8 +1110,6 @@ function spawnPop(txt,cls,x,y){
 
 // ── UPDATE UI
 function updateUI(){
-  buildTitleList();
-  updateActiveTitleDisplay();
   document.getElementById("hudScore").textContent=fmt(state.score);
   document.getElementById("hudMult").textContent =fmt(state.multiplier);
   document.getElementById("hudPet").textContent  =state.pet;
@@ -1770,96 +1734,7 @@ window.closeIndex=function(){
 };
 window.switchIdxTab=switchIdxTab;
 
-
-// ══════════════════════════════════════════
-//  TYTUŁY
-// ══════════════════════════════════════════
-const TITLES = [
-  {
-    id:"kochacz", name:"kochacz petów", style:"normal",
-    desc:"×1.5 do mnożnika przy każdym kliknięciu",
-    effect:{multi:1.5},
-    unlock:{type:"pets",val:10}, unlockDesc:"Wylęgnij 10 petów",
-  },
-  {
-    id:"zlotko", name:"uuu złotko", style:"gold-title",
-    desc:"×1.5 wygranej w kasynie",
-    effect:{casino:1.5},
-    unlock:{type:"gold_index",val:1}, unlockDesc:"Miej cały gold index",
-  },
-  {
-    id:"teczowo", name:"tęczowo!", style:"rainbow-title",
-    desc:"×2 do mnożnika i wygranej w kasynie",
-    effect:{multi:2,casino:2},
-    unlock:{type:"rainbow_index",val:1}, unlockDesc:"Miej cały rainbow index",
-  },
-];
-
-function isTitleUnlocked(t){
-  const u=t.unlock;
-  if(u.type==="pets") return state.totalPets>=u.val;
-  if(u.type==="gold_index"){
-    const all=getAllPets();
-    return all.length>0&&all.every(p=>state.petIndex&&state.petIndex[p.n]&&state.petIndex[p.n].gold);
-  }
-  if(u.type==="rainbow_index"){
-    const all=getAllPets();
-    return all.length>0&&all.every(p=>state.petIndex&&state.petIndex[p.n]&&state.petIndex[p.n].rainbow);
-  }
-  return false;
-}
-
-function getTitleEffect(key){
-  if(!state.equippedTitle) return 1;
-  const t=TITLES.find(t=>t.id===state.equippedTitle);
-  return (t&&t.effect[key])||1;
-}
-
-window.equipTitle=function(id){
-  if(state.equippedTitle===id){
-    state.equippedTitle="";
-    toast("Tytuł zdjęty.");
-  } else {
-    const t=TITLES.find(t=>t.id===id);
-    if(!t||!isTitleUnlocked(t)){toast("Ten tytuł jest jeszcze zablokowany!");return;}
-    state.equippedTitle=id;
-    toast("✅ Założono tytuł: "+t.name);
-  }
-  buildTitleList();updateActiveTitleDisplay();saveAll();
-};
-
-function buildTitleList(){
-  const el=document.getElementById("titleList");if(!el)return;el.innerHTML="";
-  TITLES.forEach(t=>{
-    const unlocked=isTitleUnlocked(t),equipped=state.equippedTitle===t.id;
-    const row=document.createElement("div");row.className="title-row";
-    let btn=!unlocked
-      ?"<button class='equip-btn locked' disabled>🔒 Zablokowany</button>"
-      :equipped
-        ?"<button class='equip-btn unequip' onclick="equipTitle('"+t.id+"')">Zdejmij</button>"
-        :"<button class='equip-btn equip' onclick="equipTitle('"+t.id+"')">Załóż</button>";
-    row.innerHTML=
-      "<div class='title-info'>"+
-        "<span class='title-name "+t.style+"'>"+t.name+(equipped?" <span class='title-equipped-badge'>✓</span>":"")+"</span>"+
-        "<span class='title-effect'>"+t.desc+"</span>"+
-        "<span class='title-unlock-req'>"+(unlocked?"✅ odblokowany":"🔒 "+t.unlockDesc)+"</span>"+
-      "</div>"+
-      "<div class='title-btns'>"+btn+"</div>";
-    el.appendChild(row);
-  });
-}
-
-function updateActiveTitleDisplay(){
-  const el=document.getElementById("activeTitleDisplay");if(!el)return;
-  if(!state.equippedTitle){el.textContent="Brak aktywnego tytułu.";return;}
-  const t=TITLES.find(t=>t.id===state.equippedTitle);
-  if(t) el.innerHTML="Aktywny: <b style='color:#00ffcc'>"+t.name+"</b> — "+t.desc;
-}
-
-
-function startGame(){recalcAuto();loadEventState();updateUI();buildShop();buildAchGrid();buildCodeHints();buildIndexCount();buildTitleList();updateActiveTitleDisplay();requestAnimationFrame(autoTick);setTimeout(checkAdminRewards,3000);}
-
-startGame();
+function startGame(){recalcAuto();loadEventState();updateUI();buildShop();buildAchGrid();buildCodeHints();requestAnimationFrame(autoTick);setTimeout(checkAdminRewards,3000);}
 
 </script>
 
