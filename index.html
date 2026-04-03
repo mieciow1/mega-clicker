@@ -1786,7 +1786,7 @@ const TITLES = [
     id:"kochacz", name:"kochacz petów", style:"normal",
     desc:"×1.5 do mnożnika przy każdym kliknięciu",
     effect:{multi:1.5},
-    unlock:{type:"pets",val:10}, unlockDesc:"Wylęgnij 10 petów",
+    unlock:{type:"normal_index",val:1}, unlockDesc:"Miej cały normalny index petów",
   },
   {
     id:"zlotko", name:"uuu złotko", style:"gold-title",
@@ -1805,6 +1805,10 @@ const TITLES = [
 function isTitleUnlocked(t){
   const u=t.unlock;
   if(u.type==="pets") return state.totalPets>=u.val;
+  if(u.type==="normal_index"){
+    const all=getAllPets();
+    return all.length>0&&all.every(p=>state.petIndex&&state.petIndex[p.n]&&state.petIndex[p.n].normal);
+  }
   if(u.type==="gold_index"){
     const all=getAllPets();
     return all.length>0&&all.every(p=>state.petIndex&&state.petIndex[p.n]&&state.petIndex[p.n].gold);
