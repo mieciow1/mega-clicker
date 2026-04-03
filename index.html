@@ -312,6 +312,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
           <option value="casino">🎰 Kasyno 2x</option>
         </select>
         <input class="admin-input" id="adminBoostMins" type="number" placeholder="Minut" min="1" max="1440" style="max-width:80px;">
+        <input class="admin-input" id="adminBoostMult" type="number" placeholder="Mnożnik (np. 2)" min="1.1" step="0.1" value="2" style="max-width:110px;">
         <button class="admin-btn" style="background:linear-gradient(135deg,#ff6400,#ffd200);color:#111;" onclick="adminGiveBoost()">Aktywuj</button>
       </div>
     </div>
@@ -1439,9 +1440,10 @@ window.adminGiveBoost = async function() {
   const nick = document.getElementById("adminBoostNick").value.trim();
   const type = document.getElementById("adminBoostType").value;
   const mins = parseInt(document.getElementById("adminBoostMins").value);
+  const mult = parseFloat(document.getElementById("adminBoostMult").value) || 2;
   if (!nick) { adminLog("❌ Wpisz nick lub 'everyone'", false); return; }
   if (!mins || mins < 1) { adminLog("❌ Wpisz czas trwania w minutach", false); return; }
-  await adminSendReward(nick, { type:"boost", boostType:type, durationMs: mins*60*1000 });
+  await adminSendReward(nick, { type:"boost", boostType:type, durationMs: mins*60*1000, amount: mult });
 };
 
 window.adminSendMsg = async function() {
@@ -1492,9 +1494,10 @@ async function checkAdminRewards() {
         gainXP(data.amount);
         notifMsg = "🎁 Admin dał " + kto + " +" + fmt(data.amount) + " XP!";
       } else if (data.type === "boost") {
-        activateBoost(data.boostType, data.durationMs);
+        activateBoost(data.boostType, data.durationMs, data.amount||2);
         const names = {mult:"✖️ Mnożnik x2", click:"🖱️ Klik x2", xp:"⭐ XP x2", casino:"🎰 Kasyno 2x"};
-        notifMsg = "⚡ Admin aktywował boost dla " + kto + ": " + (names[data.boostType]||data.boostType) + "!";
+        const multStr = data.amount && data.amount !== 2 ? " ("+data.amount+"x)" : "";
+        notifMsg = "⚡ Admin aktywował boost dla " + kto + ": " + (names[data.boostType]||data.boostType) + multStr + "!";
       } else if (data.type === "message") {
         notifMsg = "📢 " + data.message;
       }
@@ -1515,9 +1518,9 @@ setInterval(checkAdminRewards, 30000);
 // ── BOOST SYSTEM
 let activeboosts = {}; // {mult: {endsAt, multiplier}, click: {...}, xp: {...}}
 
-function activateBoost(type, durationMs) {
+function activateBoost(type, durationMs, multiplier=2) {
   const endsAt = Date.now() + durationMs;
-  activeboosts[type] = { endsAt, multiplier: 2 };
+  activeboosts[type] = { endsAt, multiplier };
   updateBoostUI();
 }
 
@@ -1542,6 +1545,8 @@ function updateBoostUI() {
   Object.entries(activeboosts).forEach(([type, b]) => {
     if (now > b.endsAt) { delete activeboosts[type]; return; }
     const info = boostInfo[type] || { icon:"⚡", label:type, color:"#fff", tip:"" };
+    const multLabel = b.multiplier !== 2 ? " "+b.multiplier+"x" : "";
+    const displayLabel = info.label.replace("x2", b.multiplier+"x") + (b.multiplier !== 2 ? "" : "");
     const remaining = b.endsAt - now;
     const totalMs = b.endsAt - (b.endsAt - remaining); // remaining = total initially
     const pct = Math.max(0, Math.min(100, (remaining / (remaining + (now - (b.endsAt - remaining)))) * 100));
@@ -1554,9 +1559,9 @@ function updateBoostUI() {
     badge.className = "boost-badge boost-" + type;
     badge.innerHTML = `
       <span>${info.icon}</span>
-      <span>${info.label} — ${timeStr}</span>
+      <span>${displayLabel} — ${timeStr}</span>
       <div class="boost-bar" style="width:${pct}%;background:${info.color};"></div>
-      <div class="boost-tip">${info.tip}<br>Pozostało: ${timeStr}</div>
+      <div class="boost-tip">${info.tip}<br>Mnożnik: ${b.multiplier}x<br>Pozostało: ${timeStr}</div>
     `;
     container.appendChild(badge);
   });
