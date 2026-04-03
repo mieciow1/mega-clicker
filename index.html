@@ -272,23 +272,48 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 .idx-tab:not(.active){ opacity:.45; }
 #indexGrid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; padding:16px; overflow-y:auto; flex:1; }
 .idx-cell { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:10px; padding:10px 6px; text-align:center; font-size:11px; display:flex; flex-direction:column; align-items:center; gap:4px; min-height:80px; justify-content:center; }
-.idx-cell.found         { border-color:rgba(0,255,180,.5); background:rgba(0,100,60,.2); }
-.idx-cell.found-gold    { border-color:rgba(255,215,0,.7);  background:rgba(100,70,0,.3); }
-.idx-cell.found-rainbow { border-color:rgba(255,0,128,.7);  background:rgba(80,0,80,.3); animation:rainbowBorderAnim 2s linear infinite; }
-@keyframes rainbowBorderAnim { 0%{border-color:#ff0080} 25%{border-color:#ffd200} 50%{border-color:#00ff80} 75%{border-color:#00ffcc} 100%{border-color:#ff0080} }
+.idx-cell.found { border-color:rgba(0,255,180,.5); background:rgba(0,100,60,.2); }
+.idx-cell.found-gold { border-color:rgba(255,215,0,.7); background:rgba(100,70,0,.3); }
+.idx-cell.found-rainbow { border-color:rgba(255,0,128,.7); background:rgba(80,0,80,.3); animation:rainbowBorder 2s linear infinite; }
+@keyframes rainbowBorder { 0%{border-color:#ff0080} 25%{border-color:#ffd200} 50%{border-color:#00ff80} 75%{border-color:#00ffcc} 100%{border-color:#ff0080} }
 .idx-emoji { font-size:22px; }
-.idx-name  { font-size:11px; color:#ccc; }
+.idx-name { font-size:11px; color:#ccc; }
 .idx-status { font-size:16px; }
 .idx-rarity { font-size:10px; font-weight:bold; margin-top:2px; }
 .idx-rarity.gold { color:#ffd700; }
 .idx-rarity.rainbow { background:linear-gradient(90deg,#ff0080,#ffd200,#00ffcc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 #indexCloseBtn { margin:0 20px 16px; padding:10px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.15); border-radius:10px; color:white; cursor:pointer; font-size:13px; width:calc(100% - 40px); }
 #indexCloseBtn:hover { background:rgba(255,255,255,.15); }
+/* INDEX button */
 #openIndexBtn { width:80px; height:80px; background:rgba(255,255,255,.07); border:1px solid rgba(255,255,255,.2); border-radius:16px; cursor:pointer; font-size:11px; color:#ccc; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; transition:background .15s; align-self:center; }
 #openIndexBtn:hover { background:rgba(255,255,255,.14); }
 #openIndexBtn .idx-count { font-size:10px; color:#00ffcc; font-weight:bold; }
+/* GOLD/RAINBOW pop */
 .pop.gold-pop { color:#ffd700; font-size:20px; text-shadow:0 0 8px #ffd700; }
 .pop.rainbow-pop { font-size:20px; background:linear-gradient(90deg,#ff0080,#ffd200,#00ffcc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+
+
+/* TYTUŁY */
+.title-card { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:14px; padding:16px 20px; width:min(440px,92vw); }
+.title-card h3 { margin:0 0 12px; font-size:12px; color:#777; text-transform:uppercase; letter-spacing:1px; }
+.title-row { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; border-radius:10px; margin-bottom:8px; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.07); }
+.title-row:last-child { margin-bottom:0; }
+.title-info { display:flex; flex-direction:column; gap:3px; }
+.title-name { font-size:14px; font-weight:bold; }
+.title-name.normal { color:#ccc; }
+.title-name.gold-title { color:#ffd700; text-shadow:0 0 6px rgba(255,215,0,.4); }
+.title-name.rainbow-title { background:linear-gradient(90deg,#ff0080,#ffd200,#00ff80,#00ffcc,#8000ff); -webkit-background-clip:text; -webkit-text-fill-color:transparent; animation:rainbowShift 3s linear infinite; background-size:200%; }
+@keyframes rainbowShift { 0%{background-position:0%} 100%{background-position:200%} }
+.title-unlock-req { font-size:10px; color:#555; }
+.title-effect { font-size:11px; color:#888; }
+.title-btns { display:flex; gap:6px; }
+.equip-btn { padding:6px 14px; border:none; border-radius:8px; font-size:12px; font-weight:bold; cursor:pointer; transition:opacity .15s; white-space:nowrap; }
+.equip-btn.equip   { background:#00ffcc; color:#111; }
+.equip-btn.unequip { background:rgba(255,60,60,.25); border:1px solid rgba(255,60,60,.4); color:#ff6b6b; }
+.equip-btn.locked  { background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12); color:#555; cursor:not-allowed; }
+.equip-btn:hover:not(.locked) { opacity:.85; }
+.title-equipped-badge { font-size:10px; color:#00ffcc; margin-left:6px; }
+#activeTitleDisplay { font-size:11px; color:#666; margin-top:8px; min-height:14px; }
 
 </style>
 </head>
@@ -303,7 +328,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
       <h3>💎 Daj Diamenty</h3>
       <div class="admin-row">
         <input class="admin-input" id="adminGemNick" placeholder="Nick gracza lub 'everyone'">
-        <input class="admin-input" id="adminGemAmt" type="number" placeholder="Ilość" min="1" style="max-width:90px;">
+        <input class="admin-input" id="adminGemAmt" type="number" placeholder="Ilość (ujemna = zabierz)" style="max-width:90px;">
         <button class="admin-btn green" onclick="adminGiveGems()">Daj</button>
       </div>
     </div>
@@ -312,7 +337,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
       <h3>🏆 Daj Wynik (punkty)</h3>
       <div class="admin-row">
         <input class="admin-input" id="adminScoreNick" placeholder="Nick gracza lub 'everyone'">
-        <input class="admin-input" id="adminScoreAmt" type="number" placeholder="Ilość" min="1" style="max-width:120px;">
+        <input class="admin-input" id="adminScoreAmt" type="number" placeholder="Ilość (ujemna = zabierz)" style="max-width:120px;">
         <button class="admin-btn gold" onclick="adminGiveScore()">Daj</button>
       </div>
     </div>
@@ -321,7 +346,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
       <h3>✖️ Daj Mnożnik</h3>
       <div class="admin-row">
         <input class="admin-input" id="adminMultNick" placeholder="Nick gracza lub 'everyone'">
-        <input class="admin-input" id="adminMultAmt" type="number" placeholder="Wartość np. 5" min="0.1" step="0.1" style="max-width:120px;">
+        <input class="admin-input" id="adminMultAmt" type="number" placeholder="Wartość (ujemna = zabierz)" step="0.1" style="max-width:120px;">
         <button class="admin-btn blue" onclick="adminGiveMult()">Daj</button>
       </div>
     </div>
@@ -330,7 +355,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
       <h3>⭐ Daj XP</h3>
       <div class="admin-row">
         <input class="admin-input" id="adminXpNick" placeholder="Nick gracza lub 'everyone'">
-        <input class="admin-input" id="adminXpAmt" type="number" placeholder="Ilość XP" min="1" style="max-width:120px;">
+        <input class="admin-input" id="adminXpAmt" type="number" placeholder="Ilość XP (ujemna = zabierz)" style="max-width:120px;">
         <button class="admin-btn" style="background:#a855f7;color:white;" onclick="adminGiveXp()">Daj</button>
       </div>
     </div>
@@ -620,6 +645,13 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
     <div id="codeStatus"></div>
   </div>
 
+
+  <div class="title-card" id="titleCard">
+    <h3>🥇 Tytuły</h3>
+    <div id="titleList"></div>
+    <div id="activeTitleDisplay"></div>
+  </div>
+
   <div class="card">
     <h3>Zapis gry</h3>
     <p style="font-size:11px;color:#666;margin:0 0 10px;">Gra zapisuje się automatycznie w chmurze (Firebase). Eksport/Import to backup na wszelki wypadek.</p>
@@ -637,7 +669,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 
 <script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged }
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged }
                            from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
 import { getFirestore, doc, getDoc, setDoc, collection, query, orderBy, limit, getDocs, where, updateDoc, serverTimestamp, addDoc, deleteDoc }
                            from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
@@ -660,23 +692,18 @@ let cloudTimer  = null;
 document.getElementById("googleLoginBtn").addEventListener("click", async () => {
   const statusEl = document.getElementById("authStatus");
   statusEl.textContent = "Logowanie...";
-  const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: "select_account" });
   try {
-    // Try popup first (works on direct page load)
-    await signInWithPopup(auth, provider);
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: "select_account" });
+    const result = await signInWithPopup(auth, provider);
+    // onAuthStateChanged zajmie sie reszta
   } catch(e) {
-    if (e.code === "auth/popup-blocked" || e.code === "auth/popup-closed-by-user" ||
-        e.code === "auth/cancelled-popup-request" || e.code === "auth/operation-not-supported-in-this-environment") {
-      // Popup blocked (e.g. inside Google Sites iframe) — fall back to redirect
-      statusEl.textContent = "Przekierowuję do logowania...";
-      try {
-        await signInWithRedirect(auth, provider);
-      } catch(e2) {
-        statusEl.textContent = "Błąd logowania: " + e2.message;
-      }
+    if (e.code === "auth/popup-closed-by-user" || e.code === "auth/cancelled-popup-request") {
+      statusEl.textContent = "Zaloguj sie aby grac.";
+    } else if (e.code === "auth/popup-blocked") {
+      statusEl.textContent = "Popup zablokowany! Zezwol na popupy dla tej strony.";
     } else {
-      statusEl.textContent = "Błąd: " + e.message;
+      statusEl.textContent = "Blad: " + e.message;
     }
   }
 });
@@ -685,14 +712,6 @@ document.getElementById("logoutBtn").addEventListener("click", async () => {
 });
 
 // ── AUTH STATE
-// Handle redirect result (fires after redirect-based login)
-getRedirectResult(auth).catch(e => {
-  if (e && e.code) {
-    const el = document.getElementById("authStatus");
-    if (el) el.textContent = "Błąd logowania: " + e.message;
-  }
-});
-
 onAuthStateChanged(auth, async user => {
   if (user) {
     currentUser = user;
@@ -887,7 +906,7 @@ let state = {
   autoPerSec:0,autoXpPerSec:0,
   upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},
   level:1,xp:0,gems:0,totalGems:0,
-  rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{},nick:"",petIndex:{}
+  rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{},nick:"",petIndex:{},equippedTitle:""
 };
 
 function migrate(s) {
@@ -904,6 +923,7 @@ function migrate(s) {
   s.pet=s.pet||"brak";
   s.petEmoji=s.petEmoji||"";
   s.petIndex=s.petIndex||{};
+  s.equippedTitle=s.equippedTitle||"";
   // Napraw multiplier jeśli jest NaN/undefined/0
   if(typeof s.multiplier!=="number"||isNaN(s.multiplier)||s.multiplier<1) s.multiplier=1.0;
   if(typeof s.score!=="number"||isNaN(s.score)||s.score<0) s.score=0;
@@ -1012,7 +1032,7 @@ window.importSave=function(){
 window.resetGame=function(){
   if(!confirm("Zresetować wszystko?"))return;
   const savedNick = state.nick;
-  state={score:0,multiplier:1.0,pet:"brak",petEmoji:"",petXpBonus:1,petPopCls:"score",autoPerSec:0,autoXpPerSec:0,upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},level:1,xp:0,gems:0,totalGems:0,rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{},nick:savedNick,eventState:null};
+  state={score:0,multiplier:1.0,pet:"brak",petEmoji:"",petXpBonus:1,petPopCls:"score",autoPerSec:0,autoXpPerSec:0,upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},level:1,xp:0,gems:0,totalGems:0,rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{},nick:savedNick,eventState:null,petIndex:{},equippedTitle:""};
   saveAll();updateUI();buildShop();buildAchGrid();buildCodeHints();toast("🗑️ Zapis usunięty.");
 };
 
@@ -1020,32 +1040,40 @@ window.resetGame=function(){
 function buyEgg(egg){
   if(egg.gemCost>0){if(state.gems<egg.gemCost){toast("Za mało 💎! Potrzebujesz "+egg.gemCost);return;}state.gems-=egg.gemCost;}
   else{if(state.level<egg.minLvl){toast("Wymagany poziom "+egg.minLvl+"!");return;}if(state.score<egg.cost){toast("Za mało punktów!");return;}state.score-=egg.cost;}
-  let r=Math.random(),cv=0,ch=egg.pets[egg.pets.length-1];
-  for(const p of egg.pets){cv+=p.w;if(r<cv){ch=p;break;}}
-  // Gold 1% / Rainbow 0.1%
-  let rarity="normal";
-  const rr=Math.random();
-  if(rr<0.001) rarity="rainbow";
-  else if(rr<0.01) rarity="gold";
-  const rm = rarity==="rainbow"?10:rarity==="gold"?5:1;
-  const finalM  = parseFloat((ch.m*rm).toFixed(2));
-  const finalXp = Math.round(ch.xp*rm);
+  let r=Math.random(),c=0,ch=egg.pets[egg.pets.length-1];
+  for(const p of egg.pets){c+=p.w;if(r<c){ch=p;break;}}
+
+  // ── GOLD / RAINBOW roll (1% gold, 0.1% rainbow)
+  let rarity = "normal";
+  const rarityRoll = Math.random();
+  if(rarityRoll < 0.001) rarity = "rainbow";
+  else if(rarityRoll < 0.01) rarity = "gold";
+
+  // stats multipliers: gold=5x, rainbow=10x
+  const rarityMult = rarity==="rainbow" ? 10 : rarity==="gold" ? 5 : 1;
+  const finalM  = parseFloat((ch.m  * rarityMult).toFixed(2));
+  const finalXp = Math.round(ch.xp * rarityMult);
+
   state.multiplier=parseFloat((state.multiplier+finalM).toFixed(2));
-  const rtag = rarity==="rainbow"?" 🌈":rarity==="gold"?" ⭐":"";
-  state.pet=ch.n+rtag+" (+"+finalM+"x/+"+finalXp+" XP)";state.petEmoji=ch.n.split(" ")[0];
+  const rarityTag = rarity==="rainbow" ? " 🌈" : rarity==="gold" ? " ⭐" : "";
+  state.pet=ch.n+rarityTag+" (+"+finalM+"x/+"+finalXp+" XP)";
+  state.petEmoji=ch.n.split(" ")[0];
   state.petXpBonus=finalXp;state.petPopCls=egg.popCls||"score";state.totalPets++;
-  // Record in petIndex
+
+  // ── Record in index
   if(!state.petIndex) state.petIndex={};
-  const pk=ch.n;
-  if(!state.petIndex[pk]) state.petIndex[pk]={normal:false,gold:false,rainbow:false};
-  state.petIndex[pk][rarity]=true;
+  const petKey = ch.n;
+  if(!state.petIndex[petKey]) state.petIndex[petKey]={normal:false,gold:false,rainbow:false};
+  state.petIndex[petKey][rarity]=true;
+
   checkAch();updateUI();buildIndexCount();saveAll();
+
   if(rarity==="rainbow"){
     spawnPop("🌈 RAINBOW!","rainbow-pop",window.innerWidth/2-50,window.innerHeight/2-80);
-    toast("🌈✨ RAINBOW "+ch.n+"! → +"+finalM+"x mnożnik (10x!) & +"+finalXp+" XP/klik!");
+    toast("🌈✨ RAINBOW "+ch.n+"! → +"+finalM+"x mnożnik (10x) & +"+finalXp+" XP/klik!");
   } else if(rarity==="gold"){
     spawnPop("⭐ GOLD!","gold-pop",window.innerWidth/2-40,window.innerHeight/2-80);
-    toast("⭐ GOLD "+ch.n+"! → +"+finalM+"x mnożnik (5x!) & +"+finalXp+" XP/klik!");
+    toast("⭐ GOLD "+ch.n+"! → +"+finalM+"x mnożnik (5x) & +"+finalXp+" XP/klik!");
   } else {
     toast("🎉 "+ch.n+" → +"+finalM+"x mnożnik & +"+finalXp+" XP/klik!");
   }
@@ -1060,11 +1088,13 @@ window.casinoPlay=function(choice){
   if(state.score<b){el.innerHTML="<span style='color:#f88'>Nie masz tyle punktów!</span>";return;}
   state.gems-=5;
   const casinoBoost = getBoostMultiplier("casino");
+  const titleCasinoBoost = getTitleEffect("casino");
   if(Math.random()<0.5===(choice==="RED")){
-    const won = b * casinoBoost;
+    const won = b * casinoBoost * titleCasinoBoost;
     state.score+=won;state.totalScore+=won;
     const boostTxt = casinoBoost>1 ? " <span style='color:#f472b6;'>(🎰 2x boost!)</span>" : "";
-    el.innerHTML="<span style='color:#4caf50'>✅ WYGRANA! +"+fmt(won)+" pkt</span>"+boostTxt;
+    const titleTxt = titleCasinoBoost>1 ? " <span style='color:#ffd700;'>(⭐ Złotko!)</span>" : "";
+    el.innerHTML="<span style='color:#4caf50'>✅ WYGRANA! +"+fmt(won)+" pkt</span>"+boostTxt+titleTxt;
     gainXP(Math.max(1,Math.floor(Math.log10(b+1))));
   } else {
     state.score-=b;
@@ -1078,7 +1108,8 @@ document.getElementById("clickBtn").addEventListener("click",function(e){
   const clickBoost = getBoostMultiplier("click");
   const xpBoost    = getBoostMultiplier("xp");
   const multBoost  = getBoostMultiplier("mult");
-  const pts = state.multiplier * clickBoost * multBoost;
+  const titleMultBoost = getTitleEffect("multi");
+  const pts = state.multiplier * clickBoost * multBoost * titleMultBoost;
   const xg  = state.petXpBonus * xpBoost;
   state.score+=pts;state.totalScore+=pts;state.totalClicks++;
   gainXP(xg);
@@ -1113,6 +1144,8 @@ function spawnPop(txt,cls,x,y){
 
 // ── UPDATE UI
 function updateUI(){
+  buildTitleList();
+  updateActiveTitleDisplay();
   document.getElementById("hudScore").textContent=fmt(state.score);
   document.getElementById("hudMult").textContent =fmt(state.multiplier);
   document.getElementById("hudPet").textContent  =state.pet;
@@ -1479,7 +1512,7 @@ window.adminGiveGems = async function() {
   const nick = document.getElementById("adminGemNick").value.trim();
   const amt  = parseInt(document.getElementById("adminGemAmt").value);
   if (!nick) { adminLog("❌ Wpisz nick lub 'everyone'", false); return; }
-  if (!amt || amt < 1) { adminLog("❌ Wpisz ilość diamentów", false); return; }
+  if (!amt || amt === 0) { adminLog("❌ Wpisz ilość (może być ujemna)", false); return; }
   await adminSendReward(nick, { type:"gems", amount:amt });
 };
 
@@ -1487,7 +1520,7 @@ window.adminGiveScore = async function() {
   const nick = document.getElementById("adminScoreNick").value.trim();
   const amt  = parseFloat(document.getElementById("adminScoreAmt").value);
   if (!nick) { adminLog("❌ Wpisz nick lub 'everyone'", false); return; }
-  if (!amt || amt < 1) { adminLog("❌ Wpisz ilość punktów", false); return; }
+  if (!amt || amt === 0) { adminLog("❌ Wpisz ilość (może być ujemna)", false); return; }
   await adminSendReward(nick, { type:"score", amount:amt });
 };
 
@@ -1495,7 +1528,7 @@ window.adminGiveMult = async function() {
   const nick = document.getElementById("adminMultNick").value.trim();
   const amt  = parseFloat(document.getElementById("adminMultAmt").value);
   if (!nick) { adminLog("❌ Wpisz nick lub 'everyone'", false); return; }
-  if (!amt || amt < 0.1) { adminLog("❌ Wpisz wartość mnożnika", false); return; }
+  if (!amt || amt === 0) { adminLog("❌ Wpisz wartość (może być ujemna)", false); return; }
   await adminSendReward(nick, { type:"mult", amount:amt });
 };
 
@@ -1503,7 +1536,7 @@ window.adminGiveXp = async function() {
   const nick = document.getElementById("adminXpNick").value.trim();
   const amt  = parseInt(document.getElementById("adminXpAmt").value);
   if (!nick) { adminLog("❌ Wpisz nick lub 'everyone'", false); return; }
-  if (!amt || amt < 1) { adminLog("❌ Wpisz ilość XP", false); return; }
+  if (!amt || amt === 0) { adminLog("❌ Wpisz ilość (może być ujemna)", false); return; }
   await adminSendReward(nick, { type:"xp", amount:amt });
 };
 
@@ -1551,19 +1584,26 @@ async function checkAdminRewards() {
       // Zastosuj nagrodę
       const kto = tgt === "everyone" ? "wszystkim" : "Ci";
       let notifMsg = "";
+      const amt = data.amount;
+      const isNeg = amt < 0;
+      const prefix = isNeg ? "" : "+";
+      const verb = isNeg ? "zabrał" : "dał";
       if (data.type === "gems") {
-        state.gems += data.amount; state.totalGems += data.amount;
-        notifMsg = "🎁 Admin dał " + kto + " " + data.amount + " 💎 diamentów!";
-        spawnGemPop("+" + data.amount + " 💎");
+        state.gems = Math.max(0, state.gems + amt);
+        if (!isNeg) state.totalGems += amt;
+        notifMsg = "🎁 Admin " + verb + " " + kto + " " + prefix + amt + " 💎!";
+        if (!isNeg) spawnGemPop("+" + amt + " 💎");
       } else if (data.type === "score") {
-        state.score += data.amount; state.totalScore += data.amount;
-        notifMsg = "🎁 Admin dał " + kto + " " + fmt(data.amount) + " punktów!";
+        state.score = Math.max(0, state.score + amt);
+        if (!isNeg) state.totalScore += amt;
+        notifMsg = "🎁 Admin " + verb + " " + kto + " " + prefix + fmt(Math.abs(amt)) + " pkt!";
       } else if (data.type === "mult") {
-        state.multiplier = parseFloat((state.multiplier + data.amount).toFixed(2));
-        notifMsg = "🎁 Admin dał " + kto + " +" + data.amount + "x mnożnik!";
+        state.multiplier = Math.max(1, parseFloat((state.multiplier + amt).toFixed(2)));
+        notifMsg = "🎁 Admin " + verb + " " + kto + " " + prefix + amt + "x mnożnik!";
       } else if (data.type === "xp") {
-        gainXP(data.amount);
-        notifMsg = "🎁 Admin dał " + kto + " +" + fmt(data.amount) + " XP!";
+        if (amt > 0) gainXP(amt);
+        else state.xp = Math.max(0, state.xp + amt);
+        notifMsg = "🎁 Admin " + verb + " " + kto + " " + prefix + fmt(Math.abs(amt)) + " XP!";
       } else if (data.type === "boost") {
         activateBoost(data.boostType, data.durationMs, data.amount||2);
         const names = {mult:"✖️ Mnożnik x2", click:"🖱️ Klik x2", xp:"⭐ XP x2", casino:"🎰 Kasyno 2x"};
@@ -1667,55 +1707,178 @@ function buildCodeHints(){}
 // ── START
 
 // ── PET INDEX
-let currentIdxTab="normal";
-function getAllIndexPets(){
+let currentIdxTab = "normal";
+
+function getAllPets(){
   const pets=[];
-  EGGS.forEach(egg=>{egg.pets.forEach(p=>{if(!pets.find(x=>x.n===p.n))pets.push({n:p.n,emoji:p.n.split(" ")[0]});});});
+  EGGS.forEach(egg=>{
+    egg.pets.forEach(p=>{
+      if(!pets.find(x=>x.n===p.n)) pets.push({n:p.n,emoji:p.n.split(" ")[0],eggId:egg.id});
+    });
+  });
   return pets;
 }
+
 function buildIndexCount(){
-  const all=getAllIndexPets();
+  const all=getAllPets();
+  const total=all.length;
   let found=0;
-  all.forEach(p=>{const rec=state.petIndex&&state.petIndex[p.n];if(rec&&(rec.normal||rec.gold||rec.rainbow))found++;});
+  all.forEach(p=>{
+    const rec=state.petIndex&&state.petIndex[p.n];
+    if(rec&&(rec.normal||rec.gold||rec.rainbow)) found++;
+  });
   const el=document.getElementById("indexCount");
-  if(el) el.textContent=found+"/"+all.length;
+  if(el) el.textContent=found+"/"+total;
 }
+
 function switchIdxTab(tab){
   currentIdxTab=tab;
-  document.querySelectorAll(".idx-tab").forEach(b=>b.classList.toggle("active",b.classList.contains(tab)));
+  document.querySelectorAll(".idx-tab").forEach(b=>{
+    b.classList.toggle("active", b.classList.contains(tab));
+  });
   buildIndexGrid();
 }
+
 function buildIndexGrid(){
-  const el=document.getElementById("indexGrid");if(!el)return;el.innerHTML="";
-  getAllIndexPets().forEach(p=>{
+  const el=document.getElementById("indexGrid");
+  if(!el)return;
+  el.innerHTML="";
+  const all=getAllPets();
+  all.forEach(p=>{
     const rec=(state.petIndex&&state.petIndex[p.n])||{};
-    const has=rec[currentIdxTab];
-    let cls="idx-cell";
-    if(has){ cls+=currentIdxTab==="rainbow"?" found-rainbow":currentIdxTab==="gold"?" found-gold":" found"; }
-    const cell=document.createElement("div");cell.className=cls;
-    let rl="";
-    if(currentIdxTab==="gold")    rl="<div class='idx-rarity gold'>GOLD ⭐</div>";
-    if(currentIdxTab==="rainbow") rl="<div class='idx-rarity rainbow'>RAINBOW 🌈</div>";
-    cell.innerHTML="<div class='idx-emoji'>"+(has?p.emoji:"❓")+"</div><div class='idx-status'>"+(has?"✅":"❌")+"</div><div class='idx-name'>"+(has?p.n.replace(/^\S+ /,""):"???")+"</div>"+rl;
+    const hasVariant = rec[currentIdxTab];
+    const cell=document.createElement("div");
+    let cellClass="idx-cell";
+    if(hasVariant){
+      if(currentIdxTab==="rainbow") cellClass+=" found-rainbow";
+      else if(currentIdxTab==="gold") cellClass+=" found-gold";
+      else cellClass+=" found";
+    }
+    cell.className=cellClass;
+    let rarityLabel="";
+    if(currentIdxTab==="gold") rarityLabel="<div class='idx-rarity gold'>GOLD ⭐</div>";
+    if(currentIdxTab==="rainbow") rarityLabel="<div class='idx-rarity rainbow'>RAINBOW 🌈</div>";
+    cell.innerHTML=
+      "<div class='idx-emoji'>"+(hasVariant?p.emoji:"❓")+"</div>"+
+      "<div class='idx-status'>"+(hasVariant?"✅":"❌")+"</div>"+
+      "<div class='idx-name'>"+(hasVariant?p.n.replace(/^\S+ /,""):"???")+"</div>"+
+      rarityLabel;
     el.appendChild(cell);
   });
 }
-window.openIndex=function(){ buildIndexGrid();buildIndexCount();document.getElementById("indexOverlay").classList.add("show"); };
-window.closeIndex=function(){ document.getElementById("indexOverlay").classList.remove("show"); };
+
+window.openIndex=function(){
+  buildIndexGrid();
+  buildIndexCount();
+  document.getElementById("indexOverlay").classList.add("show");
+};
+window.closeIndex=function(){
+  document.getElementById("indexOverlay").classList.remove("show");
+};
 window.switchIdxTab=switchIdxTab;
 
-function startGame(){recalcAuto();loadEventState();updateUI();buildShop();buildAchGrid();buildCodeHints();buildIndexCount();requestAnimationFrame(autoTick);setTimeout(checkAdminRewards,3000);}
+
+// ══════════════════════════════════════════
+//  TYTUŁY
+// ══════════════════════════════════════════
+const TITLES = [
+  {
+    id:"kochacz", name:"kochacz petów", style:"normal",
+    desc:"×1.5 do mnożnika przy każdym kliknięciu",
+    effect:{multi:1.5},
+    unlock:{type:"pets",val:10}, unlockDesc:"Wylęgnij 10 petów",
+  },
+  {
+    id:"zlotko", name:"uuu złotko", style:"gold-title",
+    desc:"×1.5 wygranej w kasynie",
+    effect:{casino:1.5},
+    unlock:{type:"gold_index",val:1}, unlockDesc:"Miej cały gold index",
+  },
+  {
+    id:"teczowo", name:"tęczowo!", style:"rainbow-title",
+    desc:"×2 do mnożnika i wygranej w kasynie",
+    effect:{multi:2,casino:2},
+    unlock:{type:"rainbow_index",val:1}, unlockDesc:"Miej cały rainbow index",
+  },
+];
+
+function isTitleUnlocked(t){
+  const u=t.unlock;
+  if(u.type==="pets") return state.totalPets>=u.val;
+  if(u.type==="gold_index"){
+    const all=getAllPets();
+    return all.length>0&&all.every(p=>state.petIndex&&state.petIndex[p.n]&&state.petIndex[p.n].gold);
+  }
+  if(u.type==="rainbow_index"){
+    const all=getAllPets();
+    return all.length>0&&all.every(p=>state.petIndex&&state.petIndex[p.n]&&state.petIndex[p.n].rainbow);
+  }
+  return false;
+}
+
+function getTitleEffect(key){
+  if(!state.equippedTitle) return 1;
+  const t=TITLES.find(t=>t.id===state.equippedTitle);
+  return (t&&t.effect[key])||1;
+}
+
+window.equipTitle=function(id){
+  if(state.equippedTitle===id){
+    state.equippedTitle="";
+    toast("Tytuł zdjęty.");
+  } else {
+    const t=TITLES.find(t=>t.id===id);
+    if(!t||!isTitleUnlocked(t)){toast("Ten tytuł jest jeszcze zablokowany!");return;}
+    state.equippedTitle=id;
+    toast("✅ Założono tytuł: "+t.name);
+  }
+  buildTitleList();updateActiveTitleDisplay();saveAll();
+};
+
+function buildTitleList(){
+  const el=document.getElementById("titleList");if(!el)return;el.innerHTML="";
+  TITLES.forEach(t=>{
+    const unlocked=isTitleUnlocked(t),equipped=state.equippedTitle===t.id;
+    const row=document.createElement("div");row.className="title-row";
+    let btn=!unlocked
+      ?"<button class='equip-btn locked' disabled>🔒 Zablokowany</button>"
+      :equipped
+        ?"<button class='equip-btn unequip' onclick='equipTitle(\""+t.id+"\")'>Zdejmij</button>"
+        :"<button class='equip-btn equip' onclick='equipTitle(\""+t.id+"\")'>Załóż</button>";
+    row.innerHTML=
+      "<div class='title-info'>"+
+        "<span class='title-name "+t.style+"'>"+t.name+(equipped?" <span class='title-equipped-badge'>✓</span>":"")+"</span>"+
+        "<span class='title-effect'>"+t.desc+"</span>"+
+        "<span class='title-unlock-req'>"+(unlocked?"✅ odblokowany":"🔒 "+t.unlockDesc)+"</span>"+
+      "</div>"+
+      "<div class='title-btns'>"+btn+"</div>";
+    el.appendChild(row);
+  });
+}
+
+function updateActiveTitleDisplay(){
+  const el=document.getElementById("activeTitleDisplay");if(!el)return;
+  if(!state.equippedTitle){el.textContent="Brak aktywnego tytułu.";return;}
+  const t=TITLES.find(t=>t.id===state.equippedTitle);
+  if(t) el.innerHTML="Aktywny: <b style='color:#00ffcc'>"+t.name+"</b> — "+t.desc;
+}
+
+
+function startGame(){recalcAuto();loadEventState();updateUI();buildShop();buildAchGrid();buildCodeHints();buildIndexCount();buildTitleList();updateActiveTitleDisplay();requestAnimationFrame(autoTick);setTimeout(checkAdminRewards,3000);}
+
+startGame();
 
 </script>
 
+<!-- INDEX OVERLAY -->
 <div id="indexOverlay">
   <div id="indexBox">
     <div id="indexHeader">
       <h2>📖 Indeks Petów</h2>
       <div class="idx-tabs">
         <button class="idx-tab normal active" onclick="switchIdxTab('normal')">Normal</button>
-        <button class="idx-tab gold"          onclick="switchIdxTab('gold')">⭐ Gold</button>
-        <button class="idx-tab rainbow"       onclick="switchIdxTab('rainbow')">🌈 Rainbow</button>
+        <button class="idx-tab gold" onclick="switchIdxTab('gold')">⭐ Gold</button>
+        <button class="idx-tab rainbow" onclick="switchIdxTab('rainbow')">🌈 Rainbow</button>
       </div>
     </div>
     <div id="indexGrid"></div>
