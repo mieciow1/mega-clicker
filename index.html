@@ -1911,9 +1911,12 @@ function buildIndexGrid(){
   const el=document.getElementById("indexGrid");
   if(!el)return;
   el.innerHTML="";
-  // Show/hide candy tab
+  // Show/hide candy tab — pokaż gdy event aktywny LUB gdy gracz ma jakiegoś candy peta
   const candyTab=document.getElementById("candyTab");
-  if(candyTab) candyTab.style.display=(activeEvent&&activeEvent.id==="candy")?"inline-block":"none";
+  if(candyTab){
+    const hasCandyPet = state.petIndex && Object.values(state.petIndex).some(r=>r.candy);
+    candyTab.style.display=(activeEvent&&activeEvent.id==="candy")||hasCandyPet?"inline-block":"none";
+  }
   const all=getAllPets();
   all.forEach(p=>{
     const rec=(state.petIndex&&state.petIndex[p.n])||{};
