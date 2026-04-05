@@ -246,7 +246,19 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 .admin-btn.gold  { background:#ffd200; color:#111; }
 .admin-btn.close { background:rgba(255,255,255,.1); color:#888; border:1px solid rgba(255,255,255,.15); }
 #adminLog { font-size:11px; color:#555; margin-top:4px; min-height:14px; }
-/* BOOST INDICATOR */
+/* EVENT BANNER */
+#eventBanner { display:none; position:fixed; top:0; left:0; right:0; z-index:55; padding:6px 16px; font-size:13px; font-weight:bold; text-align:center; align-items:center; justify-content:center; gap:10px; }
+#eventBanner.show { display:flex; }
+#eventBanner .ev-close { background:none; border:none; color:rgba(255,255,255,.6); font-size:16px; cursor:pointer; position:absolute; right:12px; }
+/* candy event */
+#eventBanner.candy { background:linear-gradient(90deg,#ff69b4,#ff1493,#ff69b4); color:white; text-shadow:0 1px 3px rgba(0,0,0,.4); animation:candyShift 3s linear infinite; background-size:200%; }
+@keyframes candyShift { 0%{background-position:0%} 100%{background-position:200%} }
+/* candy pet in index */
+.idx-cell.found-candy { border-color:rgba(255,105,180,.8); background:rgba(150,0,80,.25); animation:candyBorder 1.5s linear infinite; }
+@keyframes candyBorder { 0%{border-color:#ff69b4} 50%{border-color:#ff1493} 100%{border-color:#ff69b4} }
+.idx-rarity.candy { color:#ff69b4; }
+
+
 #boostIndicator { position:fixed; bottom:40px; left:16px; z-index:100; display:flex; flex-direction:column; gap:6px; pointer-events:none; }
 .boost-badge { background:rgba(0,0,0,.85); border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:6px 12px; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:8px; backdrop-filter:blur(6px); position:relative; cursor:default; pointer-events:all; }
 .boost-badge .boost-bar { position:absolute; bottom:0; left:0; height:3px; border-radius:0 0 10px 10px; transition:width .5s linear; }
@@ -268,6 +280,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 .idx-tab.normal { background:#444; color:#ccc; }
 .idx-tab.gold   { background:linear-gradient(135deg,#b8860b,#ffd700); color:#111; }
 .idx-tab.rainbow{ background:linear-gradient(135deg,#ff0080,#ffd200,#00ff80,#00ffcc,#8000ff); color:white; }
+.idx-tab.candy  { background:linear-gradient(135deg,#ff69b4,#ff1493); color:white; display:none; }
 .idx-tab.active { opacity:1; }
 .idx-tab:not(.active){ opacity:.45; }
 #indexGrid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; padding:16px; overflow-y:auto; flex:1; }
@@ -318,6 +331,12 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 </style>
 </head>
 <body>
+
+<!-- EVENT BANNER -->
+<div id="eventBanner">
+  <span id="eventBannerText"></span>
+  <button class="ev-close" onclick="document.getElementById('eventBanner').classList.remove('show')">✕</button>
+</div>
 
 <!-- ADMIN PANEL -->
 <div id="adminOverlay">
@@ -374,6 +393,20 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
         <input class="admin-input" id="adminBoostMult" type="number" placeholder="Mnożnik (np. 2)" min="1.1" step="0.1" value="2" style="max-width:110px;">
         <button class="admin-btn" style="background:linear-gradient(135deg,#ff6400,#ffd200);color:#111;" onclick="adminGiveBoost()">Aktywuj</button>
       </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>🎪 Eventy</h3>
+      <div class="admin-row">
+        <select class="admin-input" id="adminEventSelect">
+          <option value="">— wybierz event —</option>
+          <option value="candy">🍬 Candy Event</option>
+        </select>
+        <input class="admin-input" id="adminEventMins" type="number" placeholder="Minut" min="1" style="max-width:80px;">
+        <button class="admin-btn" style="background:linear-gradient(135deg,#ff69b4,#ff1493);color:white;" onclick="adminStartEvent()">Start!</button>
+        <button class="admin-btn" style="background:rgba(255,60,60,.3);color:#ff6b6b;border:1px solid rgba(255,60,60,.4);" onclick="adminStopEvent()">Stop</button>
+      </div>
+      <div id="adminEventStatus" style="font-size:11px;color:#555;margin-top:4px;"></div>
     </div>
 
     <div class="admin-section">
@@ -1043,19 +1076,21 @@ function buyEgg(egg){
   let r=Math.random(),c=0,ch=egg.pets[egg.pets.length-1];
   for(const p of egg.pets){c+=p.w;if(r<c){ch=p;break;}}
 
-  // ── GOLD / RAINBOW roll (1% gold, 0.1% rainbow)
+  // ── GOLD / RAINBOW / CANDY roll
   let rarity = "normal";
   const rarityRoll = Math.random();
-  if(rarityRoll < 0.001) rarity = "rainbow";
+  // Candy event: 0.5% szans na candy wariant
+  if(activeEvent && activeEvent.id==="candy" && rarityRoll < 0.005) rarity = "candy";
+  else if(rarityRoll < 0.001) rarity = "rainbow";
   else if(rarityRoll < 0.01) rarity = "gold";
 
-  // stats multipliers: gold=5x, rainbow=10x
-  const rarityMult = rarity==="rainbow" ? 10 : rarity==="gold" ? 5 : 1;
+  // stats multipliers: candy=3x, gold=5x, rainbow=10x
+  const rarityMult = rarity==="rainbow" ? 10 : rarity==="gold" ? 5 : rarity==="candy" ? 3 : 1;
   const finalM  = parseFloat((ch.m  * rarityMult).toFixed(2));
   const finalXp = Math.round(ch.xp * rarityMult);
 
   state.multiplier=parseFloat((state.multiplier+finalM).toFixed(2));
-  const rarityTag = rarity==="rainbow" ? " 🌈" : rarity==="gold" ? " ⭐" : "";
+  const rarityTag = rarity==="rainbow" ? " 🌈" : rarity==="gold" ? " ⭐" : rarity==="candy" ? " 🍬" : "";
   state.pet=ch.n+rarityTag+" (+"+finalM+"x/+"+finalXp+" XP)";
   state.petEmoji=ch.n.split(" ")[0];
   state.petXpBonus=finalXp;state.petPopCls=egg.popCls||"score";state.totalPets++;
@@ -1063,7 +1098,7 @@ function buyEgg(egg){
   // ── Record in index
   if(!state.petIndex) state.petIndex={};
   const petKey = ch.n;
-  if(!state.petIndex[petKey]) state.petIndex[petKey]={normal:false,gold:false,rainbow:false};
+  if(!state.petIndex[petKey]) state.petIndex[petKey]={normal:false,gold:false,rainbow:false,candy:false};
   state.petIndex[petKey][rarity]=true;
 
   checkAch();updateUI();buildIndexCount();saveAll();
@@ -1074,6 +1109,10 @@ function buyEgg(egg){
   } else if(rarity==="gold"){
     spawnPop("⭐ GOLD!","gold-pop",window.innerWidth/2-40,window.innerHeight/2-80);
     toast("⭐ GOLD "+ch.n+"! → +"+finalM+"x mnożnik (5x) & +"+finalXp+" XP/klik!");
+  } else if(rarity==="candy"){
+    spawnPop("🍬 CANDY!","gem",window.innerWidth/2-40,window.innerHeight/2-80);
+    toast("🍬 CANDY "+ch.n+"! → +"+finalM+"x mnożnik (3x) & +"+finalXp+" XP/klik!");
+    buildIndexGrid();
   } else {
     toast("🎉 "+ch.n+" → +"+finalM+"x mnożnik & +"+finalXp+" XP/klik!");
   }
@@ -1109,7 +1148,8 @@ document.getElementById("clickBtn").addEventListener("click",function(e){
   const xpBoost    = getBoostMultiplier("xp");
   const multBoost  = getBoostMultiplier("mult");
   const titleMultBoost = getTitleEffect("multi");
-  const pts = state.multiplier * clickBoost * multBoost * titleMultBoost;
+  const candyBonus = (activeEvent && activeEvent.id==="candy") ? activeEvent.mutation.clickBonus : 1;
+  const pts = state.multiplier * clickBoost * multBoost * titleMultBoost * candyBonus;
   const xg  = state.petXpBonus * xpBoost;
   state.score+=pts;state.totalScore+=pts;state.totalClicks++;
   gainXP(xg);
@@ -1119,6 +1159,7 @@ document.getElementById("clickBtn").addEventListener("click",function(e){
     spawnPop("+1 💎","gem",e.clientX-10,e.clientY-40);
     toast("💎 Zdobyłeś diament! (co 10 000 kliknięć)");
   }
+  maybeCandyPop(e.clientX, e.clientY);
   checkAch();updateUI();saveAll();
   spawnPop("+"+fmt(pts),state.petPopCls||"score",e.clientX-22,e.clientY-12);
   spawnPop("+"+fmt(xg)+" XP","xp",e.clientX+8,e.clientY-24);
@@ -1702,6 +1743,133 @@ function showAdminNotif(msg) {
   toast(msg);
 }
 
+// ══════════════════════════════════════════
+//  EVENT SYSTEM
+// ══════════════════════════════════════════
+const EVENTS = {
+  candy: {
+    id: "candy",
+    name: "🍬 Candy Event",
+    bannerClass: "candy",
+    bannerText: "🍬 CANDY EVENT — Zbieraj słodkie pety! Różowe warianty w indeksie!",
+    mutation: {
+      // każdy klik ma 5% szans na candy pop (+candy pet do indeksu)
+      candyChance: 0.05,
+      clickBonus: 1.5, // kliknięcia dają 1.5x więcej
+    },
+    petVariant: "candy", // nowy wariant w indeksie
+    color: "#ff69b4",
+  },
+};
+
+let activeEvent = null; // aktualnie aktywny event lokalnie
+
+// Sprawdź aktywny event z Firestore
+async function checkActiveEvent() {
+  try {
+    const snap = await getDoc(doc(db, "gameEvents", "active"));
+    if (snap.exists() && snap.data().active) {
+      const data = snap.data();
+      if (Date.now() < data.endsAt) {
+        applyEvent(data.eventId, data.endsAt);
+      } else {
+        // Event wygasł
+        clearEvent();
+      }
+    } else {
+      clearEvent();
+    }
+  } catch(e) { /* cicho */ }
+}
+
+function applyEvent(eventId, endsAt) {
+  const ev = EVENTS[eventId];
+  if (!ev) return;
+  activeEvent = { ...ev, endsAt };
+  const banner = document.getElementById("eventBanner");
+  const bannerText = document.getElementById("eventBannerText");
+  if (banner && bannerText) {
+    banner.className = "show " + ev.bannerClass;
+    // Push HUD down
+    document.getElementById("hud").style.top = "28px";
+    const remaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 60000));
+    bannerText.textContent = ev.bannerText + " (" + remaining + " min)";
+    banner.classList.add("show");
+  }
+  buildIndexGrid(); // odśwież indeks żeby pokazać candy wariant
+}
+
+function clearEvent() {
+  activeEvent = null;
+  const banner = document.getElementById("eventBanner");
+  if (banner) banner.classList.remove("show");
+  document.getElementById("hud").style.top = "0";
+  buildIndexGrid();
+}
+
+// Admin — start event
+window.adminStartEvent = async function() {
+  const eventId = document.getElementById("adminEventSelect").value;
+  const mins = parseInt(document.getElementById("adminEventMins").value);
+  const statusEl = document.getElementById("adminEventStatus");
+  if (!eventId) { statusEl.style.color="#f88"; statusEl.textContent="❌ Wybierz event!"; return; }
+  if (!mins || mins < 1) { statusEl.style.color="#f88"; statusEl.textContent="❌ Wpisz czas w minutach!"; return; }
+  try {
+    statusEl.textContent="Uruchamianie...";
+    const endsAt = Date.now() + mins * 60000;
+    await setDoc(doc(db, "gameEvents", "active"), {
+      active: true,
+      eventId,
+      endsAt,
+      startedBy: state.nick || "admin",
+      startedAt: new Date().toISOString(),
+    });
+    applyEvent(eventId, endsAt);
+    statusEl.style.color="#00ffcc";
+    statusEl.textContent="✅ Event uruchomiony na " + mins + " min!";
+    adminLog("✅ Event '" + eventId + "' uruchomiony na " + mins + " min!");
+    showAdminNotif("🎪 Admin uruchomił event: " + EVENTS[eventId].name + " (" + mins + " min)!");
+  } catch(e) {
+    statusEl.style.color="#f88"; statusEl.textContent="❌ " + e.message;
+  }
+};
+
+// Admin — stop event
+window.adminStopEvent = async function() {
+  const statusEl = document.getElementById("adminEventStatus");
+  try {
+    await setDoc(doc(db, "gameEvents", "active"), { active: false });
+    clearEvent();
+    statusEl.style.color="#00ffcc"; statusEl.textContent="✅ Event zatrzymany!";
+    adminLog("✅ Event zatrzymany.");
+    showAdminNotif("🎪 Event zakończony przez admina.");
+  } catch(e) {
+    statusEl.style.color="#f88"; statusEl.textContent="❌ " + e.message;
+  }
+};
+
+// Candy pop podczas kliknięcia
+function maybeCandyPop(clientX, clientY) {
+  if (!activeEvent || activeEvent.id !== "candy") return;
+  if (Math.random() > activeEvent.mutation.candyChance) return;
+  // Daj candy wariant aktualnego peta do indeksu
+  if (state.pet && state.pet !== "brak") {
+    const petKey = state.pet.split(" (")[0];
+    if (!state.petIndex) state.petIndex = {};
+    if (!state.petIndex[petKey]) state.petIndex[petKey] = {normal:false,gold:false,rainbow:false,candy:false};
+    if (!state.petIndex[petKey].candy) {
+      state.petIndex[petKey].candy = true;
+      spawnPop("🍬 CANDY!", "gem", clientX - 20, clientY - 50);
+      toast("🍬 Candy wariant " + petKey + " dodany do indeksu!");
+      buildIndexGrid();
+      saveAll();
+    }
+  }
+}
+
+// Sprawdzaj event co 60 sekund
+setInterval(checkActiveEvent, 60000);
+
 function buildCodeHints(){}
 
 // ── START
@@ -1743,6 +1911,9 @@ function buildIndexGrid(){
   const el=document.getElementById("indexGrid");
   if(!el)return;
   el.innerHTML="";
+  // Show/hide candy tab
+  const candyTab=document.getElementById("candyTab");
+  if(candyTab) candyTab.style.display=(activeEvent&&activeEvent.id==="candy")?"inline-block":"none";
   const all=getAllPets();
   all.forEach(p=>{
     const rec=(state.petIndex&&state.petIndex[p.n])||{};
@@ -1752,12 +1923,14 @@ function buildIndexGrid(){
     if(hasVariant){
       if(currentIdxTab==="rainbow") cellClass+=" found-rainbow";
       else if(currentIdxTab==="gold") cellClass+=" found-gold";
+      else if(currentIdxTab==="candy") cellClass+=" found-candy";
       else cellClass+=" found";
     }
     cell.className=cellClass;
     let rarityLabel="";
     if(currentIdxTab==="gold") rarityLabel="<div class='idx-rarity gold'>GOLD ⭐</div>";
     if(currentIdxTab==="rainbow") rarityLabel="<div class='idx-rarity rainbow'>RAINBOW 🌈</div>";
+    if(currentIdxTab==="candy") rarityLabel="<div class='idx-rarity candy'>CANDY 🍬</div>";
     cell.innerHTML=
       "<div class='idx-emoji'>"+(hasVariant?p.emoji:"❓")+"</div>"+
       "<div class='idx-status'>"+(hasVariant?"✅":"❌")+"</div>"+
@@ -1868,7 +2041,7 @@ function updateActiveTitleDisplay(){
 }
 
 
-function startGame(){recalcAuto();loadEventState();updateUI();buildShop();buildAchGrid();buildCodeHints();buildIndexCount();buildTitleList();updateActiveTitleDisplay();requestAnimationFrame(autoTick);setTimeout(checkAdminRewards,3000);}
+function startGame(){recalcAuto();loadEventState();updateUI();buildShop();buildAchGrid();buildCodeHints();buildIndexCount();buildTitleList();updateActiveTitleDisplay();requestAnimationFrame(autoTick);setTimeout(checkAdminRewards,3000);setTimeout(checkActiveEvent,2000);}
 
 startGame();
 
@@ -1883,6 +2056,7 @@ startGame();
         <button class="idx-tab normal active" onclick="switchIdxTab('normal')">Normal</button>
         <button class="idx-tab gold" onclick="switchIdxTab('gold')">⭐ Gold</button>
         <button class="idx-tab rainbow" onclick="switchIdxTab('rainbow')">🌈 Rainbow</button>
+        <button class="idx-tab candy" id="candyTab" onclick="switchIdxTab('candy')">🍬 Candy</button>
       </div>
     </div>
     <div id="indexGrid"></div>
