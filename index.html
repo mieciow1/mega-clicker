@@ -650,9 +650,9 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 
   <div class="card">
     <h3>Kasyno (50/50)</h3>
-    <p style="font-size:11px;color:#666;margin:0 0 10px;">Każda gra kosztuje <b style="color:#f472b6;">5 💎</b>. Wygrana = 2x zakład w punktach!</p>
+    <p style="font-size:11px;color:#666;margin:0 0 10px;">Każda gra kosztuje <b style="color:#f472b6;">5 💎</b>. Wygrana = 2x zakład! Max zakład: <b style="color:#ffd200;">100Qi</b></p>
     <div class="casino-row">
-      <input type="number" id="betInput" placeholder="Kwota zakładu" min="1">
+      <input type="text" id="betInput" placeholder="np. 1k, 5M, 100Qi" style="flex:1;min-width:80px;padding:9px 12px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);border-radius:8px;color:white;font-size:14px;">
       <button class="bet-btn" id="redBtn" onclick="casinoPlay('RED')">🔴 CZERWONY</button>
       <button class="bet-btn" id="blackBtn" onclick="casinoPlay('BLACK')">⚫ CZARNY</button>
     </div>
@@ -822,7 +822,12 @@ function saveAll() {
 setInterval(() => saveToCloud(), 30000);
 
 // ── NUMBER FORMAT
-const SFX = [[1e15,"Q"],[1e12,"T"],[1e9,"B"],[1e6,"M"],[1e3,"k"]];
+const SFX = [
+  [1e63,"Vg"],[1e60,"Nod"],[1e57,"Spd"],[1e54,"Sxd"],[1e51,"Qid"],[1e48,"Qd"],
+  [1e45,"Td"],[1e42,"Dd"],[1e39,"Ud"],[1e36,"Dc"],
+  [1e33,"No"],[1e30,"Oc"],[1e27,"Sp"],[1e24,"Sx"],[1e21,"Qi"],
+  [1e18,"Q"],[1e15,"q"],[1e12,"T"],[1e9,"B"],[1e6,"M"],[1e3,"k"]
+];
 function fmt(n) {
   if (!isFinite(n)||isNaN(n)) return "∞";
   n = Math.abs(n)>=1 ? Math.floor(n) : parseFloat(n.toFixed(2));
@@ -1120,12 +1125,34 @@ function buyEgg(egg){
 EGGS.forEach(e=>{const el=document.getElementById(e.id);if(el)el.addEventListener("click",()=>buyEgg(e));});
 
 // ── CASINO
+function parseBet(str) {
+  if (!str) return NaN;
+  str = str.trim().toLowerCase();
+  const map = [
+    ["vg",1e63],["nod",1e60],["spd",1e57],["sxd",1e54],["qid",1e51],["qd",1e48],
+    ["td",1e45],["dd",1e42],["ud",1e39],["dc",1e36],
+    ["no",1e33],["oc",1e30],["sp",1e27],["sx",1e24],["qi",1e21],
+    ["q",1e18],["t",1e12],["b",1e9],["m",1e6],["k",1e3]
+  ];
+  for (const [sfx, val] of map) {
+    if (str.endsWith(sfx)) {
+      const num = parseFloat(str.slice(0, -sfx.length));
+      return isNaN(num) ? NaN : num * val;
+    }
+  }
+  return parseFloat(str);
+}
+
 window.casinoPlay=function(choice){
-  const b=parseFloat(document.getElementById("betInput").value),el=document.getElementById("casinoResult");
+  const CASINO_MAX = 100 * 1e21; // 100Qi
+  const raw = document.getElementById("betInput").value;
+  const b = parseBet(raw);
+  const el = document.getElementById("casinoResult");
   if(isNaN(b)||b<=0){el.innerHTML="<span style='color:#f88'>Wpisz kwotę.</span>";return;}
+  if(b>CASINO_MAX){el.innerHTML="<span style='color:#f88'>Maksymalny zakład to 100Qi!</span>";return;}
   if(state.gems<5){el.innerHTML="<span style='color:#f88'>Potrzebujesz 5 💎 aby zagrać!</span>";return;}
   if(state.score<b){el.innerHTML="<span style='color:#f88'>Nie masz tyle punktów!</span>";return;}
-  state.gems-=5;
+  state.gems=Math.max(0,state.gems-5);
   const casinoBoost = getBoostMultiplier("casino");
   const titleCasinoBoost = getTitleEffect("casino");
   if(Math.random()<0.5===(choice==="RED")){
@@ -1136,7 +1163,7 @@ window.casinoPlay=function(choice){
     el.innerHTML="<span style='color:#4caf50'>✅ WYGRANA! +"+fmt(won)+" pkt</span>"+boostTxt+titleTxt;
     gainXP(Math.max(1,Math.floor(Math.log10(b+1))));
   } else {
-    state.score-=b;
+    state.score=Math.max(0,state.score-b);
     el.innerHTML="<span style='color:#f44'>❌ PRZEGRANA! -"+fmt(b)+" pkt</span>";
   }
   checkAch();updateUI();saveAll();
@@ -1782,6 +1809,8 @@ async function checkActiveEvent() {
   } catch(e) { /* cicho */ }
 }
 
+let eventEndTimer = null;
+
 function applyEvent(eventId, endsAt) {
   const ev = EVENTS[eventId];
   if (!ev) return;
@@ -1790,16 +1819,27 @@ function applyEvent(eventId, endsAt) {
   const bannerText = document.getElementById("eventBannerText");
   if (banner && bannerText) {
     banner.className = "show " + ev.bannerClass;
-    // Push HUD down
     document.getElementById("hud").style.top = "28px";
     const remaining = Math.max(0, Math.ceil((endsAt - Date.now()) / 60000));
     bannerText.textContent = ev.bannerText + " (" + remaining + " min)";
     banner.classList.add("show");
   }
-  buildIndexGrid(); // odśwież indeks żeby pokazać candy wariant
+  buildIndexGrid();
+  // Ustaw timer który zakończy event dokładnie gdy wygaśnie
+  if (eventEndTimer) clearTimeout(eventEndTimer);
+  const msLeft = endsAt - Date.now();
+  if (msLeft > 0) {
+    eventEndTimer = setTimeout(() => {
+      clearEvent();
+      showAdminNotif("🎪 Event zakończony!");
+    }, msLeft);
+  } else {
+    clearEvent();
+  }
 }
 
 function clearEvent() {
+  if (eventEndTimer) { clearTimeout(eventEndTimer); eventEndTimer = null; }
   activeEvent = null;
   const banner = document.getElementById("eventBanner");
   if (banner) banner.classList.remove("show");
