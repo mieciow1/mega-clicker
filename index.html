@@ -259,6 +259,13 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 .idx-rarity.candy { color:#ff69b4; }
 
 
+/* TRAITS */
+#traitDisplay { position:fixed; bottom:40px; right:16px; z-index:100; display:flex; flex-direction:column; gap:5px; pointer-events:none; align-items:flex-end; }
+.trait-badge { background:rgba(0,0,0,.88); border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:5px 12px; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:7px; backdrop-filter:blur(6px); position:relative; pointer-events:all; cursor:default; }
+.trait-badge .trait-bar { position:absolute; bottom:0; left:0; height:3px; border-radius:0 0 10px 10px; transition:width .5s linear; }
+.trait-badge .trait-tip { display:none; position:absolute; bottom:calc(100% + 8px); right:0; background:#111; border:1px solid #444; border-radius:8px; padding:8px 12px; font-size:11px; white-space:nowrap; z-index:300; line-height:1.8; font-weight:normal; }
+.trait-badge:hover .trait-tip { display:block; }
+
 #boostIndicator { position:fixed; bottom:40px; left:16px; z-index:100; display:flex; flex-direction:column; gap:6px; pointer-events:none; }
 .boost-badge { background:rgba(0,0,0,.85); border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:6px 12px; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:8px; backdrop-filter:blur(6px); position:relative; cursor:default; pointer-events:all; }
 .boost-badge .boost-bar { position:absolute; bottom:0; left:0; height:3px; border-radius:0 0 10px 10px; transition:width .5s linear; }
@@ -393,6 +400,26 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
         <input class="admin-input" id="adminBoostMult" type="number" placeholder="Mnożnik (np. 2)" min="1.1" step="0.1" value="2" style="max-width:110px;">
         <button class="admin-btn" style="background:linear-gradient(135deg,#ff6400,#ffd200);color:#111;" onclick="adminGiveBoost()">Aktywuj</button>
       </div>
+    </div>
+
+    <div class="admin-section">
+      <h3>🌀 Traity Petów</h3>
+      <p style="font-size:11px;color:#666;margin:0 0 8px;">Traity siadają losowo na peta podczas klikania. Stackują się!</p>
+      <div class="admin-row">
+        <select class="admin-input" id="adminTraitSelect">
+          <option value="tornado">🌪️ Tornado (10%, 2x)</option>
+          <option value="taco">🌮 Taco (5%, 3x)</option>
+          <option value="blizzard">❄️ Blizzard (8%, 2.5x)</option>
+          <option value="nova">💥 Nova (3%, 4x)</option>
+          <option value="venom">☠️ Venom (7%, 2.2x)</option>
+          <option value="eclipse">🌑 Eclipse (2%, 5x)</option>
+          <option value="prism">🔮 Prism (4%, 3.5x)</option>
+        </select>
+        <input class="admin-input" id="adminTraitMins" type="number" placeholder="Minut" min="1" style="max-width:80px;">
+        <input class="admin-input" id="adminTraitNick" placeholder="Nick lub 'everyone'" style="max-width:130px;">
+        <button class="admin-btn" style="background:linear-gradient(135deg,#a855f7,#6366f1);color:white;" onclick="adminGiveTrait()">Daj!</button>
+      </div>
+      <div id="adminTraitLog" style="font-size:11px;color:#555;margin-top:4px;"></div>
     </div>
 
     <div class="admin-section">
@@ -699,6 +726,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 </div>
 <div id="toast"></div>
 <div id="boostIndicator"></div>
+<div id="traitDisplay"></div>
 
 <script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
@@ -1176,7 +1204,8 @@ document.getElementById("clickBtn").addEventListener("click",function(e){
   const multBoost  = getBoostMultiplier("mult");
   const titleMultBoost = getTitleEffect("multi");
   const candyBonus = (activeEvent && activeEvent.id==="candy") ? activeEvent.mutation.clickBonus : 1;
-  const pts = state.multiplier * clickBoost * multBoost * titleMultBoost * candyBonus;
+  const traitMult = getTraitTotalMult();
+  const pts = state.multiplier * clickBoost * multBoost * titleMultBoost * candyBonus * traitMult;
   const xg  = state.petXpBonus * xpBoost;
   state.score+=pts;state.totalScore+=pts;state.totalClicks++;
   gainXP(xg);
@@ -1187,6 +1216,7 @@ document.getElementById("clickBtn").addEventListener("click",function(e){
     toast("💎 Zdobyłeś diament! (co 10 000 kliknięć)");
   }
   maybeCandyPop(e.clientX, e.clientY);
+  rollTraits(e.clientX, e.clientY);
   checkAch();updateUI();saveAll();
   spawnPop("+"+fmt(pts),state.petPopCls||"score",e.clientX-22,e.clientY-12);
   spawnPop("+"+fmt(xg)+" XP","xp",e.clientX+8,e.clientY-24);
@@ -1677,6 +1707,10 @@ async function checkAdminRewards() {
         const names = {mult:"✖️ Mnożnik x2", click:"🖱️ Klik x2", xp:"⭐ XP x2", casino:"🎰 Kasyno 2x"};
         const multStr = data.amount && data.amount !== 2 ? " ("+data.amount+"x)" : "";
         notifMsg = "⚡ Admin aktywował boost dla " + kto + ": " + (names[data.boostType]||data.boostType) + multStr + "!";
+      } else if (data.type === "trait") {
+        activateTrait(data.traitId, data.durationMs);
+        const def = TRAIT_DEFS[data.traitId];
+        notifMsg = "🌀 Admin aktywował trait dla " + kto + ": " + (def?def.icon+" "+def.name:"") + " na " + Math.round(data.durationMs/60000) + " min!";
       } else if (data.type === "message") {
         notifMsg = "📢 " + data.message;
       }
@@ -1909,6 +1943,117 @@ function maybeCandyPop(clientX, clientY) {
 
 // Sprawdzaj event co 60 sekund
 setInterval(checkActiveEvent, 60000);
+
+// ══════════════════════════════════════════
+//  TRAIT SYSTEM
+// ══════════════════════════════════════════
+const TRAIT_DEFS = {
+  tornado: { icon:"🌪️", name:"Tornado", chance:0.10, mult:2.0,   color:"#60a5fa", desc:"10% szans, 2x mnożnik peta" },
+  taco:    { icon:"🌮", name:"Taco",    chance:0.05, mult:3.0,   color:"#fb923c", desc:"5% szans, 3x mnożnik peta" },
+  blizzard:{ icon:"❄️", name:"Blizzard",chance:0.08, mult:2.5,   color:"#93c5fd", desc:"8% szans, 2.5x mnożnik peta" },
+  nova:    { icon:"💥", name:"Nova",    chance:0.03, mult:4.0,   color:"#f59e0b", desc:"3% szans, 4x mnożnik peta" },
+  venom:   { icon:"☠️", name:"Venom",   chance:0.07, mult:2.2,   color:"#86efac", desc:"7% szans, 2.2x mnożnik peta" },
+  eclipse: { icon:"🌑", name:"Eclipse", chance:0.02, mult:5.0,   color:"#c084fc", desc:"2% szans, 5x mnożnik peta" },
+  prism:   { icon:"🔮", name:"Prism",   chance:0.04, mult:3.5,   color:"#f0abfc", desc:"4% szans, 3.5x mnożnik peta" },
+};
+
+// activeTraits: { tornado: {endsAt, mult}, ... }
+let activeTraits = {};
+
+function activateTrait(traitId, durationMs) {
+  const def = TRAIT_DEFS[traitId];
+  if (!def) return;
+  const endsAt = Date.now() + durationMs;
+  // Stackuje — jeśli już jest, wydłuż czas
+  if (activeTraits[traitId]) {
+    activeTraits[traitId].endsAt = Math.max(activeTraits[traitId].endsAt, endsAt);
+  } else {
+    activeTraits[traitId] = { endsAt, mult: def.mult };
+  }
+  updateTraitUI();
+}
+
+function getTraitTotalMult() {
+  const now = Date.now();
+  let total = 1;
+  Object.entries(activeTraits).forEach(([id, t]) => {
+    if (now > t.endsAt) { delete activeTraits[id]; return; }
+    total *= t.mult;
+  });
+  return total;
+}
+
+function updateTraitUI() {
+  const container = document.getElementById("traitDisplay");
+  if (!container) return;
+  container.innerHTML = "";
+  const now = Date.now();
+  Object.entries(activeTraits).forEach(([id, t]) => {
+    if (now > t.endsAt) { delete activeTraits[id]; return; }
+    const def = TRAIT_DEFS[id];
+    if (!def) return;
+    const remaining = t.endsAt - now;
+    const mins = Math.floor(remaining / 60000);
+    const secs = Math.floor((remaining % 60000) / 1000);
+    const timeStr = mins > 0 ? mins+"m "+secs+"s" : secs+"s";
+    const badge = document.createElement("div");
+    badge.className = "trait-badge";
+    badge.style.borderColor = def.color + "88";
+    badge.style.color = def.color;
+    badge.innerHTML = `
+      <span>${def.icon}</span>
+      <span>${def.name} ${def.mult}x — ${timeStr}</span>
+      <div class="trait-bar" style="background:${def.color};width:100%;"></div>
+      <div class="trait-tip">${def.desc}<br>Pozostało: ${timeStr}</div>
+    `;
+    container.appendChild(badge);
+  });
+}
+
+// Tick traits co sekundę
+setInterval(() => {
+  const now = Date.now();
+  let any = false;
+  Object.keys(activeTraits).forEach(id => {
+    if (now > activeTraits[id].endsAt) { delete activeTraits[id]; }
+    else any = true;
+  });
+  updateTraitUI();
+}, 1000);
+
+// Losuj traity podczas kliknięcia (tylko jeśli masz peta)
+function rollTraits(clientX, clientY) {
+  if (!state.pet || state.pet === "brak") return;
+  // Sprawdź aktywne traity które mogą siąść
+  Object.entries(TRAIT_DEFS).forEach(([id, def]) => {
+    // Tylko aktywne traity (admin musi je włączyć)
+    if (!activeTraits[id]) return;
+    if (Math.random() < def.chance) {
+      // Trait siada na peta — przedłuż o 30s lub zostaw jak jest
+      activeTraits[id].endsAt = Math.max(activeTraits[id].endsAt, Date.now() + 30000);
+      spawnPop(def.icon+" "+def.name+"!", "gem", clientX + 20, clientY - 30);
+    }
+  });
+  updateTraitUI();
+}
+
+// Admin — daj trait
+window.adminGiveTrait = async function() {
+  const traitId = document.getElementById("adminTraitSelect").value;
+  const mins    = parseInt(document.getElementById("adminTraitMins").value);
+  const nick    = document.getElementById("adminTraitNick").value.trim();
+  const logEl   = document.getElementById("adminTraitLog");
+  if (!nick)  { logEl.style.color="#f88"; logEl.textContent="❌ Wpisz nick lub 'everyone'"; return; }
+  if (!mins || mins < 1) { logEl.style.color="#f88"; logEl.textContent="❌ Wpisz czas w minutach"; return; }
+  logEl.style.color="#555"; logEl.textContent="Wysyłanie...";
+  try {
+    await adminSendReward(nick, { type:"trait", traitId, durationMs: mins * 60000 });
+    logEl.style.color="#00ffcc";
+    logEl.textContent="✅ Trait "+TRAIT_DEFS[traitId].name+" wysłany do "+(nick.toLowerCase()==="everyone"?"WSZYSTKICH":nick)+"!";
+  } catch(e) {
+    logEl.style.color="#f88"; logEl.textContent="❌ "+e.message;
+  }
+};
 
 function buildCodeHints(){}
 
