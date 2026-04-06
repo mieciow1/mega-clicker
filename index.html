@@ -282,6 +282,10 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 .pinv-rarity.rainbow { background:linear-gradient(90deg,#ff0080,#ffd200,#00ffcc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
 .pinv-rarity.candy { color:#ff69b4; }
 .pinv-equipped { font-size:9px; color:#00ffcc; }
+.pinv-traits { display:flex; flex-wrap:wrap; gap:3px; justify-content:center; margin-top:3px; }
+.pinv-trait-dot { font-size:11px; line-height:1; }
+.pinv-trait-mult { font-size:9px; color:#a78bfa; font-weight:bold; }
+.pinv-total-mult { font-size:11px; color:#fbbf24; font-weight:bold; margin-top:2px; }
 #petInvCount { font-size:11px; color:#555; }
 .stat.pet-stat { cursor:pointer; transition:background .15s; }
 .stat.pet-stat:hover { background:rgba(255,255,255,.13); }
@@ -2100,28 +2104,41 @@ function updateTraitUI() {
 // Tick traits co sekundę
 setInterval(() => {
   const now = Date.now();
-  let any = false;
+  let changed = false;
   Object.keys(activeTraits).forEach(id => {
-    if (now > activeTraits[id].endsAt) { delete activeTraits[id]; }
-    else any = true;
+    if (now > activeTraits[id].endsAt) { delete activeTraits[id]; changed = true; }
   });
   updateTraitUI();
+  if (changed) {
+    syncTraitsToActivePet();
+    if (document.getElementById("petInvOverlay").classList.contains("show")) buildPetInvGrid();
+  }
 }, 1000);
 
 // Losuj traity podczas kliknięcia (tylko jeśli masz peta)
 function rollTraits(clientX, clientY) {
   if (!state.pet || state.pet === "brak") return;
-  // Sprawdź aktywne traity które mogą siąść
+  let rolled = false;
   Object.entries(TRAIT_DEFS).forEach(([id, def]) => {
-    // Tylko aktywne traity (admin musi je włączyć)
     if (!activeTraits[id]) return;
     if (Math.random() < def.chance) {
-      // Trait siada na peta — przedłuż o 30s lub zostaw jak jest
       activeTraits[id].endsAt = Math.max(activeTraits[id].endsAt, Date.now() + 30000);
       spawnPop(def.icon+" "+def.name+"!", "gem", clientX + 20, clientY - 30);
+      rolled = true;
     }
   });
-  updateTraitUI();
+  if (rolled) {
+    // Zapisz traity do aktywnego peta
+    syncTraitsToActivePet();
+    updateTraitUI();
+    buildPetInvGrid();
+  }
+}
+
+function syncTraitsToActivePet() {
+  if (!state.equippedPetId || !state.petInventory) return;
+  const pet = state.petInventory.find(p => p.id === state.equippedPetId);
+  if (pet) pet.traits = JSON.parse(JSON.stringify(activeTraits));
 }
 
 // Admin — daj trait
@@ -2189,11 +2206,27 @@ function buildPetInvGrid() {
     const rarityIcon = pet.rarity==="rainbow"?"🌈":pet.rarity==="gold"?"⭐":pet.rarity==="candy"?"🍬":"";
     const rarityLabel = pet.rarity !== "normal" ? `<div class="pinv-rarity ${pet.rarity}">${pet.rarity.toUpperCase()}</div>` : "";
 
+    // Traity tego peta
+    const petTraits = isActive ? activeTraits : (pet.traits || {});
+    const now = Date.now();
+    const activeTraitEntries = Object.entries(petTraits).filter(([,t]) => t && now < t.endsAt);
+    let traitMult = 1;
+    activeTraitEntries.forEach(([,t]) => { traitMult *= t.mult || 1; });
+    const totalMult = parseFloat((pet.mult * traitMult).toFixed(2));
+    const traitDots = activeTraitEntries.map(([id]) => {
+      const def = TRAIT_DEFS[id];
+      return def ? `<span class="pinv-trait-dot" title="${def.name} ${def.mult}x">${def.icon}</span>` : "";
+    }).join("");
+    const traitStr = activeTraitEntries.length > 0
+      ? `<div class="pinv-traits">${traitDots}</div><div class="pinv-trait-mult">×${traitMult.toFixed(1)} trait</div><div class="pinv-total-mult">= ${totalMult}x total</div>`
+      : "";
+
     cell.innerHTML = `
       <div class="pinv-emoji">${pet.emoji}</div>
       <div class="pinv-name">${pet.name.replace(/^\S+ /,"")}${rarityIcon}</div>
       <div class="pinv-stats">+${pet.mult}x / +${pet.xp}XP</div>
       ${rarityLabel}
+      ${traitStr}
       ${isActive ? '<div class="pinv-equipped">✓ Aktywny</div>' : ''}
     `;
     cell.onclick = () => equipPetFromInv(pet);
@@ -2202,8 +2235,17 @@ function buildPetInvGrid() {
 }
 
 function equipPetFromInv(pet) {
+  // Zapisz obecne traity do poprzedniego peta
+  if (state.equippedPetId && state.petInventory) {
+    const prev = state.petInventory.find(p => p.id === state.equippedPetId);
+    if (prev) prev.traits = JSON.parse(JSON.stringify(activeTraits));
+  }
+  // Załaduj traity nowego peta
+  const newTraits = pet.traits || {};
+  activeTraits = JSON.parse(JSON.stringify(newTraits));
+  updateTraitUI();
+
   state.equippedPetId = pet.id;
-  state.multiplier = parseFloat((state.multiplier + pet.mult).toFixed(2));
   const rarityTag = pet.rarity==="rainbow"?" 🌈":pet.rarity==="gold"?" ⭐":pet.rarity==="candy"?" 🍬":"";
   state.pet = pet.name + rarityTag + " (+" + pet.mult + "x/+" + pet.xp + " XP)";
   state.petEmoji = pet.emoji;
