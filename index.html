@@ -259,6 +259,33 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 .idx-rarity.candy { color:#ff69b4; }
 
 
+/* PET INVENTORY */
+#petInvOverlay { position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:9000; display:none; align-items:center; justify-content:center; }
+#petInvOverlay.show { display:flex; }
+#petInvBox { background:#1a1a2e; border:2px solid rgba(255,255,255,.12); border-radius:18px; width:min(520px,96vw); max-height:82vh; display:flex; flex-direction:column; overflow:hidden; }
+#petInvHeader { padding:16px 20px 10px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,.08); }
+#petInvHeader h2 { margin:0; font-size:17px; color:white; }
+#petInvClose { background:none; border:none; color:#888; font-size:20px; cursor:pointer; }
+#petInvClose:hover { color:white; }
+#petInvGrid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; padding:14px; overflow-y:auto; flex:1; }
+.pinv-cell { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 6px; text-align:center; cursor:pointer; transition:background .15s,border-color .15s; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.pinv-cell:hover { background:rgba(255,255,255,.1); }
+.pinv-cell.active-pet { border-color:#00ffcc; background:rgba(0,255,204,.08); }
+.pinv-cell.rarity-gold { border-color:rgba(255,215,0,.6); background:rgba(100,70,0,.2); }
+.pinv-cell.rarity-rainbow { border-color:rgba(255,0,128,.6); background:rgba(80,0,80,.2); animation:rainbowBorder 2s linear infinite; }
+.pinv-cell.rarity-candy { border-color:rgba(255,105,180,.6); background:rgba(150,0,80,.2); }
+.pinv-emoji { font-size:26px; }
+.pinv-name { font-size:10px; color:#ccc; line-height:1.3; }
+.pinv-stats { font-size:10px; color:#00ffcc; font-weight:bold; }
+.pinv-rarity { font-size:9px; font-weight:bold; margin-top:2px; }
+.pinv-rarity.gold { color:#ffd700; }
+.pinv-rarity.rainbow { background:linear-gradient(90deg,#ff0080,#ffd200,#00ffcc); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.pinv-rarity.candy { color:#ff69b4; }
+.pinv-equipped { font-size:9px; color:#00ffcc; }
+#petInvCount { font-size:11px; color:#555; }
+.stat.pet-stat { cursor:pointer; transition:background .15s; }
+.stat.pet-stat:hover { background:rgba(255,255,255,.13); }
+
 /* TRAITS */
 #traitDisplay { position:fixed; bottom:40px; right:16px; z-index:100; display:flex; flex-direction:column; gap:5px; pointer-events:none; align-items:flex-end; }
 .trait-badge { background:rgba(0,0,0,.88); border:1px solid rgba(255,255,255,.15); border-radius:10px; padding:5px 12px; font-size:12px; font-weight:bold; display:flex; align-items:center; gap:7px; backdrop-filter:blur(6px); position:relative; pointer-events:all; cursor:default; }
@@ -407,13 +434,29 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
       <p style="font-size:11px;color:#666;margin:0 0 8px;">Traity siadają losowo na peta podczas klikania. Stackują się!</p>
       <div class="admin-row">
         <select class="admin-input" id="adminTraitSelect">
-          <option value="tornado">🌪️ Tornado (10%, 2x)</option>
-          <option value="taco">🌮 Taco (5%, 3x)</option>
-          <option value="blizzard">❄️ Blizzard (8%, 2.5x)</option>
-          <option value="nova">💥 Nova (3%, 4x)</option>
-          <option value="venom">☠️ Venom (7%, 2.2x)</option>
-          <option value="eclipse">🌑 Eclipse (2%, 5x)</option>
-          <option value="prism">🔮 Prism (4%, 3.5x)</option>
+          <option value="tornado">🌪️ Tornado (100%, 2x)</option>
+          <option value="taco">🌮 Taco (50%, 3x)</option>
+          <option value="blizzard">❄️ Blizzard (80%, 2.5x)</option>
+          <option value="nova">💥 Nova (30%, 4x)</option>
+          <option value="venom">☠️ Venom (70%, 2.2x)</option>
+          <option value="eclipse">🌑 Eclipse (20%, 5x)</option>
+          <option value="prism">🔮 Prism (40%, 3.5x)</option>
+          <option value="inferno">🔥 Inferno (60%, 2.8x)</option>
+          <option value="storm">⛈️ Storm (45%, 3.2x)</option>
+          <option value="shadow">🌫️ Shadow (25%, 4.5x)</option>
+          <option value="cosmic">🌌 Cosmic (15%, 6x)</option>
+          <option value="lava">🌋 Lava (55%, 2.6x)</option>
+          <option value="crystal">💎 Crystal (35%, 3.8x)</option>
+          <option value="plague">🦠 Plague (65%, 2.4x)</option>
+          <option value="divine">✨ Divine (10%, 7x)</option>
+          <option value="chaos">🌀 Chaos (20%, 5.5x)</option>
+          <option value="frost">🧊 Frost (75%, 2.1x)</option>
+          <option value="thunder">⚡ Thunder (50%, 3x)</option>
+          <option value="void">🕳️ Void (5%, 9x)</option>
+          <option value="spirit">👻 Spirit (30%, 4.2x)</option>
+          <option value="dragon">🐉 Dragon (12%, 6.5x)</option>
+          <option value="angel">😇 Angel (8%, 8x)</option>
+          <option value="abyss">🌊 Abyss (18%, 5.8x)</option>
         </select>
         <input class="admin-input" id="adminTraitMins" type="number" placeholder="Minut" min="1" style="max-width:80px;">
         <input class="admin-input" id="adminTraitNick" placeholder="Nick lub 'everyone'" style="max-width:130px;">
@@ -569,7 +612,7 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
     <div class="stat lvl-stat">Poziom: <span id="hudLvl">1</span></div>
     <div class="stat xp-stat">XP: <span id="hudXP">0/100</span></div>
     <div class="stat">Mnożnik: <span id="hudMult">1.00</span>x</div>
-    <div class="stat">Pet: <span id="hudPet">brak</span></div>
+    <div class="stat pet-stat" onclick="openPetInventory()" title="Kliknij aby otworzyć inventory">🐾 Pet: <span id="hudPet">brak</span></div>
     <div class="stat">Auto: <span id="hudAuto">0</span>/s</div>
     <div class="stat gem-stat">💎 <span id="hudGems">0</span></div>
   </div>
@@ -724,6 +767,18 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
   </div>
 
 </div>
+<!-- PET INVENTORY -->
+<div id="petInvOverlay">
+  <div id="petInvBox">
+    <div id="petInvHeader">
+      <h2>🐾 Inventory Petów</h2>
+      <span id="petInvCount"></span>
+      <button id="petInvClose" onclick="closePetInventory()">✕</button>
+    </div>
+    <div id="petInvGrid"></div>
+  </div>
+</div>
+
 <div id="toast"></div>
 <div id="boostIndicator"></div>
 <div id="traitDisplay"></div>
@@ -972,7 +1027,7 @@ let state = {
   autoPerSec:0,autoXpPerSec:0,
   upgrades:{cursor:0,factory:0,robot:0,server:0,ai:0,quantum:0},
   level:1,xp:0,gems:0,totalGems:0,
-  rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{},nick:"",petIndex:{},equippedTitle:""
+  rebirths:0,totalClicks:0,totalScore:0,totalPets:0,achDone:{},usedCodes:{},nick:"",petIndex:{},equippedTitle:"",petInventory:[],equippedPetId:null
 };
 
 function migrate(s) {
@@ -990,6 +1045,8 @@ function migrate(s) {
   s.petEmoji=s.petEmoji||"";
   s.petIndex=s.petIndex||{};
   s.equippedTitle=s.equippedTitle||"";
+  s.petInventory=s.petInventory||[];
+  s.equippedPetId=s.equippedPetId||null;
   // Napraw multiplier jeśli jest NaN/undefined/0
   if(typeof s.multiplier!=="number"||isNaN(s.multiplier)||s.multiplier<1) s.multiplier=1.0;
   if(typeof s.score!=="number"||isNaN(s.score)||s.score<0) s.score=0;
@@ -1133,6 +1190,18 @@ function buyEgg(egg){
   const petKey = ch.n;
   if(!state.petIndex[petKey]) state.petIndex[petKey]={normal:false,gold:false,rainbow:false,candy:false};
   state.petIndex[petKey][rarity]=true;
+
+  // ── Save to inventory
+  if(!state.petInventory) state.petInventory=[];
+  state.petInventory.push({
+    name: ch.n,
+    emoji: ch.n.split(" ")[0],
+    rarity,
+    mult: finalM,
+    xp: finalXp,
+    popCls: egg.popCls||"score",
+    id: Date.now() + Math.random(),
+  });
 
   checkAch();updateUI();buildIndexCount();saveAll();
 
@@ -1948,13 +2017,31 @@ setInterval(checkActiveEvent, 60000);
 //  TRAIT SYSTEM
 // ══════════════════════════════════════════
 const TRAIT_DEFS = {
-  tornado: { icon:"🌪️", name:"Tornado", chance:0.10, mult:2.0,   color:"#60a5fa", desc:"10% szans, 2x mnożnik peta" },
-  taco:    { icon:"🌮", name:"Taco",    chance:0.05, mult:3.0,   color:"#fb923c", desc:"5% szans, 3x mnożnik peta" },
-  blizzard:{ icon:"❄️", name:"Blizzard",chance:0.08, mult:2.5,   color:"#93c5fd", desc:"8% szans, 2.5x mnożnik peta" },
-  nova:    { icon:"💥", name:"Nova",    chance:0.03, mult:4.0,   color:"#f59e0b", desc:"3% szans, 4x mnożnik peta" },
-  venom:   { icon:"☠️", name:"Venom",   chance:0.07, mult:2.2,   color:"#86efac", desc:"7% szans, 2.2x mnożnik peta" },
-  eclipse: { icon:"🌑", name:"Eclipse", chance:0.02, mult:5.0,   color:"#c084fc", desc:"2% szans, 5x mnożnik peta" },
-  prism:   { icon:"🔮", name:"Prism",   chance:0.04, mult:3.5,   color:"#f0abfc", desc:"4% szans, 3.5x mnożnik peta" },
+  // Oryginalne (szanse /10 od oryginalnych)
+  tornado: { icon:"🌪️", name:"Tornado",  chance:0.01, mult:2.0,  color:"#60a5fa", desc:"1% szans, 2x mnożnik peta" },
+  taco:    { icon:"🌮", name:"Taco",     chance:0.005,mult:3.0,  color:"#fb923c", desc:"0.5% szans, 3x mnożnik peta" },
+  blizzard:{ icon:"❄️", name:"Blizzard", chance:0.008,mult:2.5,  color:"#93c5fd", desc:"0.8% szans, 2.5x mnożnik peta" },
+  nova:    { icon:"💥", name:"Nova",     chance:0.003,mult:4.0,  color:"#f59e0b", desc:"0.3% szans, 4x mnożnik peta" },
+  venom:   { icon:"☠️", name:"Venom",    chance:0.007,mult:2.2,  color:"#86efac", desc:"0.7% szans, 2.2x mnożnik peta" },
+  eclipse: { icon:"🌑", name:"Eclipse",  chance:0.002,mult:5.0,  color:"#c084fc", desc:"0.2% szans, 5x mnożnik peta" },
+  prism:   { icon:"🔮", name:"Prism",    chance:0.004,mult:3.5,  color:"#f0abfc", desc:"0.4% szans, 3.5x mnożnik peta" },
+  // Nowe traity
+  inferno: { icon:"🔥", name:"Inferno",  chance:0.006,mult:2.8,  color:"#ef4444", desc:"0.6% szans, 2.8x mnożnik peta" },
+  storm:   { icon:"⛈️", name:"Storm",    chance:0.0045,mult:3.2, color:"#818cf8", desc:"0.45% szans, 3.2x mnożnik peta" },
+  shadow:  { icon:"🌫️", name:"Shadow",   chance:0.0025,mult:4.5, color:"#6b7280", desc:"0.25% szans, 4.5x mnożnik peta" },
+  cosmic:  { icon:"🌌", name:"Cosmic",   chance:0.0015,mult:6.0, color:"#38bdf8", desc:"0.15% szans, 6x mnożnik peta" },
+  lava:    { icon:"🌋", name:"Lava",     chance:0.0055,mult:2.6, color:"#dc2626", desc:"0.55% szans, 2.6x mnożnik peta" },
+  crystal: { icon:"💎", name:"Crystal",  chance:0.0035,mult:3.8, color:"#67e8f9", desc:"0.35% szans, 3.8x mnożnik peta" },
+  plague:  { icon:"🦠", name:"Plague",   chance:0.0065,mult:2.4, color:"#84cc16", desc:"0.65% szans, 2.4x mnożnik peta" },
+  divine:  { icon:"✨", name:"Divine",   chance:0.001, mult:7.0, color:"#fde68a", desc:"0.1% szans, 7x mnożnik peta" },
+  chaos:   { icon:"🌀", name:"Chaos",    chance:0.002, mult:5.5, color:"#a855f7", desc:"0.2% szans, 5.5x mnożnik peta" },
+  frost:   { icon:"🧊", name:"Frost",    chance:0.0075,mult:2.1, color:"#bae6fd", desc:"0.75% szans, 2.1x mnożnik peta" },
+  thunder: { icon:"⚡", name:"Thunder",  chance:0.005, mult:3.0, color:"#fbbf24", desc:"0.5% szans, 3x mnożnik peta" },
+  void:    { icon:"🕳️", name:"Void",     chance:0.0005,mult:9.0, color:"#1e1b4b", desc:"0.05% szans, 9x mnożnik peta" },
+  spirit:  { icon:"👻", name:"Spirit",   chance:0.003, mult:4.2, color:"#e0f2fe", desc:"0.3% szans, 4.2x mnożnik peta" },
+  dragon:  { icon:"🐉", name:"Dragon",   chance:0.0012,mult:6.5, color:"#f97316", desc:"0.12% szans, 6.5x mnożnik peta" },
+  angel:   { icon:"😇", name:"Angel",    chance:0.0008,mult:8.0, color:"#fef9c3", desc:"0.08% szans, 8x mnożnik peta" },
+  abyss:   { icon:"🌊", name:"Abyss",    chance:0.0018,mult:5.8, color:"#0369a1", desc:"0.18% szans, 5.8x mnożnik peta" },
 };
 
 // activeTraits: { tornado: {endsAt, mult}, ... }
@@ -2054,6 +2141,79 @@ window.adminGiveTrait = async function() {
     logEl.style.color="#f88"; logEl.textContent="❌ "+e.message;
   }
 };
+
+// ══════════════════════════════════════════
+//  PET INVENTORY
+// ══════════════════════════════════════════
+window.openPetInventory = function() {
+  buildPetInvGrid();
+  document.getElementById("petInvOverlay").classList.add("show");
+};
+
+window.closePetInventory = function() {
+  document.getElementById("petInvOverlay").classList.remove("show");
+};
+
+function buildPetInvGrid() {
+  const grid = document.getElementById("petInvGrid");
+  const countEl = document.getElementById("petInvCount");
+  if (!grid) return;
+  if (!state.petInventory) state.petInventory = [];
+
+  countEl.textContent = state.petInventory.length + " petów";
+  grid.innerHTML = "";
+
+  if (state.petInventory.length === 0) {
+    grid.innerHTML = "<div style='grid-column:span 4;text-align:center;color:#555;padding:40px;'>Brak petów — wylęgnij jajko!</div>";
+    return;
+  }
+
+  // Sortuj: aktywny pierwszy, potem rainbow, gold, candy, normal
+  const rarityOrder = {rainbow:0, gold:1, candy:2, normal:3};
+  const sorted = [...state.petInventory].sort((a,b) => {
+    if (a.id === state.equippedPetId) return -1;
+    if (b.id === state.equippedPetId) return 1;
+    return (rarityOrder[a.rarity]||3) - (rarityOrder[b.rarity]||3);
+  });
+
+  sorted.forEach(pet => {
+    const isActive = pet.id === state.equippedPetId;
+    const cell = document.createElement("div");
+    let cls = "pinv-cell";
+    if (isActive) cls += " active-pet";
+    if (pet.rarity === "rainbow") cls += " rarity-rainbow";
+    else if (pet.rarity === "gold") cls += " rarity-gold";
+    else if (pet.rarity === "candy") cls += " rarity-candy";
+    cell.className = cls;
+
+    const rarityIcon = pet.rarity==="rainbow"?"🌈":pet.rarity==="gold"?"⭐":pet.rarity==="candy"?"🍬":"";
+    const rarityLabel = pet.rarity !== "normal" ? `<div class="pinv-rarity ${pet.rarity}">${pet.rarity.toUpperCase()}</div>` : "";
+
+    cell.innerHTML = `
+      <div class="pinv-emoji">${pet.emoji}</div>
+      <div class="pinv-name">${pet.name.replace(/^\S+ /,"")}${rarityIcon}</div>
+      <div class="pinv-stats">+${pet.mult}x / +${pet.xp}XP</div>
+      ${rarityLabel}
+      ${isActive ? '<div class="pinv-equipped">✓ Aktywny</div>' : ''}
+    `;
+    cell.onclick = () => equipPetFromInv(pet);
+    grid.appendChild(cell);
+  });
+}
+
+function equipPetFromInv(pet) {
+  state.equippedPetId = pet.id;
+  state.multiplier = parseFloat((state.multiplier + pet.mult).toFixed(2));
+  const rarityTag = pet.rarity==="rainbow"?" 🌈":pet.rarity==="gold"?" ⭐":pet.rarity==="candy"?" 🍬":"";
+  state.pet = pet.name + rarityTag + " (+" + pet.mult + "x/+" + pet.xp + " XP)";
+  state.petEmoji = pet.emoji;
+  state.petXpBonus = pet.xp;
+  state.petPopCls = pet.popCls || "score";
+  updateUI();
+  saveAll();
+  buildPetInvGrid();
+  toast("✅ Wyposażono: " + pet.name + rarityTag);
+}
 
 function buildCodeHints(){}
 
