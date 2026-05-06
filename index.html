@@ -259,7 +259,23 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
 .idx-rarity.candy { color:#ff69b4; }
 
 
-/* PET INVENTORY */
+/* GAME SELECT MENU */
+#gameSelectOverlay { position:fixed; inset:0; background:#1e1e2e; z-index:20000; display:none; align-items:center; justify-content:center; flex-direction:column; gap:40px; }
+#gameSelectOverlay.show { display:flex; }
+#gameSelectOverlay h1 { color:#00ffcc; font-size:28px; margin:0; letter-spacing:2px; text-align:center; }
+#gameSelectOverlay p { color:#555; font-size:14px; margin:0; text-align:center; }
+.game-cards { display:flex; gap:24px; flex-wrap:wrap; justify-content:center; }
+.game-card { width:200px; background:rgba(255,255,255,.05); border:2px solid rgba(255,255,255,.1); border-radius:20px; padding:28px 20px; cursor:pointer; transition:transform .12s,border-color .15s,background .15s; display:flex; flex-direction:column; align-items:center; gap:12px; text-align:center; }
+.game-card:hover { transform:scale(1.05); background:rgba(255,255,255,.1); }
+.game-card.mega:hover { border-color:#00ffcc; }
+.game-card.safe:hover { border-color:#ffd200; }
+.game-card .gc-icon { font-size:52px; }
+.game-card .gc-name { font-size:18px; font-weight:bold; color:white; }
+.game-card .gc-desc { font-size:12px; color:#666; line-height:1.5; }
+.game-card.mega .gc-name { color:#00ffcc; }
+.game-card.safe .gc-name { color:#ffd200; }
+
+
 #petInvOverlay { position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:9000; display:none; align-items:center; justify-content:center; }
 #petInvOverlay.show { display:flex; }
 #petInvBox { background:#1a1a2e; border:2px solid rgba(255,255,255,.12); border-radius:18px; width:min(520px,96vw); max-height:82vh; display:flex; flex-direction:column; overflow:hidden; }
@@ -771,6 +787,28 @@ body { background:#1e1e2e; margin:0; color:white; font-family:sans-serif; overfl
   </div>
 
 </div>
+<!-- GAME SELECT -->
+<div id="gameSelectOverlay">
+  <div style="font-size:60px;">🎮</div>
+  <div style="text-align:center;">
+    <h1>Witaj!</h1>
+    <p>Wybierz grę w którą chcesz zagrać</p>
+  </div>
+  <div class="game-cards">
+    <div class="game-card mega" onclick="selectGame('clicker')">
+      <div class="gc-icon">🖱️</div>
+      <div class="gc-name">Mega Clicker</div>
+      <div class="gc-desc">Klikaj, zdobywaj pety i wspinaj się na szczyt!</div>
+    </div>
+    <div class="game-card safe" onclick="selectGame('safe')">
+      <div class="gc-icon">🔒</div>
+      <div class="gc-name">Safe Simulator</div>
+      <div class="gc-desc">Otwieraj sejfy i zbieraj skarby!</div>
+    </div>
+  </div>
+  <div id="gameSelectUser" style="font-size:12px;color:#444;"></div>
+</div>
+
 <!-- PET INVENTORY -->
 <div id="petInvOverlay">
   <div id="petInvBox">
@@ -839,20 +877,33 @@ onAuthStateChanged(auth, async user => {
     document.getElementById("userBar").style.display     = "flex";
     document.getElementById("userAvatar").src            = user.photoURL || "";
     await loadCloudSave();
-    // Check if nick is set
+    // Show game select
+    const selUser = document.getElementById("gameSelectUser");
+    if (selUser) selUser.textContent = "Zalogowany jako: " + (state.nick || user.email);
+    document.getElementById("gameSelectOverlay").classList.add("show");
+  } else {
+    document.getElementById("authOverlay").style.display = "flex";
+    document.getElementById("userBar").style.display     = "none";
+    document.getElementById("gameSelectOverlay").classList.remove("show");
+    document.getElementById("authStatus").textContent    = "Zaloguj się aby grać.";
+  }
+});
+
+window.selectGame = function(game) {
+  document.getElementById("gameSelectOverlay").classList.remove("show");
+  if (game === "clicker") {
+    startGame();
     if (!state.nick) {
       document.getElementById("nickOverlay").classList.add("show");
       document.getElementById("nickInput").focus();
     } else {
       document.getElementById("userName").textContent = state.nick;
     }
-    startGame();
-  } else {
-    document.getElementById("authOverlay").style.display = "flex";
-    document.getElementById("userBar").style.display     = "none";
-    document.getElementById("authStatus").textContent    = "Zaloguj się aby grać.";
+  } else if (game === "safe") {
+    toast("🔒 Safe Simulator — wkrótce!");
+    setTimeout(() => document.getElementById("gameSelectOverlay").classList.add("show"), 1500);
   }
-});
+};
 
 // ── CLOUD SAVE
 function setCloudStatus(msg) {
@@ -2066,12 +2117,12 @@ function activateTrait(traitId, durationMs) {
 
 function getTraitTotalMult() {
   const now = Date.now();
-  let total = 1;
+  let total = 0;
   Object.entries(activeTraits).forEach(([id, t]) => {
     if (now > t.endsAt) { delete activeTraits[id]; return; }
-    total *= t.mult;
+    total += (t.mult - 1); // dodajemy bonusy ponad 1x
   });
-  return total;
+  return 1 + total; // np. 2x + 5x = 1 + (1 + 4) = 6x łącznie
 }
 
 function updateTraitUI() {
@@ -2210,8 +2261,9 @@ function buildPetInvGrid() {
     const petTraits = isActive ? activeTraits : (pet.traits || {});
     const now = Date.now();
     const activeTraitEntries = Object.entries(petTraits).filter(([,t]) => t && now < t.endsAt);
-    let traitMult = 1;
-    activeTraitEntries.forEach(([,t]) => { traitMult *= t.mult || 1; });
+    let traitBonus = 0;
+    activeTraitEntries.forEach(([,t]) => { traitBonus += (t.mult - 1) || 0; });
+    const traitMult = 1 + traitBonus;
     const totalMult = parseFloat((pet.mult * traitMult).toFixed(2));
     const traitDots = activeTraitEntries.map(([id]) => {
       const def = TRAIT_DEFS[id];
