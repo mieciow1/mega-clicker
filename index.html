@@ -900,8 +900,7 @@ window.selectGame = function(game) {
       document.getElementById("userName").textContent = state.nick;
     }
   } else if (game === "safe") {
-    toast("🔒 Safe Simulator — wkrótce!");
-    setTimeout(() => document.getElementById("gameSelectOverlay").classList.add("show"), 1500);
+    window.location.href = "safe.html";
   }
 };
 
