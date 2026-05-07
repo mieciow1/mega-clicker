@@ -123,6 +123,22 @@ body { background:#0f0f1a; color:white; font-family:sans-serif; min-height:100vh
 .bb-btn:hover { background:rgba(255,255,255,.14); color:white; }
 #saveStatus2 { font-size:11px; color:#555; }
 
+/* ── SETTINGS ── */
+#settingsOverlay { position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:4000; display:none; align-items:center; justify-content:center; }
+#settingsOverlay.show { display:flex; }
+#settingsBox { background:#1a1a2e; border:2px solid rgba(255,255,255,.12); border-radius:18px; width:min(380px,96vw); padding:24px; display:flex; flex-direction:column; gap:16px; }
+#settingsBox h2 { font-size:17px; margin:0; }
+.setting-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.06); }
+.setting-row:last-child { border-bottom:none; }
+.setting-info h4 { font-size:14px; margin:0 0 3px; }
+.setting-info p { font-size:11px; color:#555; margin:0; }
+.toggle-btn { width:52px; height:28px; border-radius:14px; border:none; cursor:pointer; position:relative; transition:background .2s; flex-shrink:0; }
+.toggle-btn.on  { background:#00ffcc; }
+.toggle-btn.off { background:#333; }
+.toggle-btn::after { content:''; position:absolute; top:4px; width:20px; height:20px; border-radius:50%; background:white; transition:left .2s; }
+.toggle-btn.on::after  { left:28px; }
+.toggle-btn.off::after { left:4px; }
+
 /* ── TOAST ── */
 #toast2 { position:fixed; bottom:50px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.9); border:1px solid rgba(255,255,255,.18); border-radius:10px; padding:10px 20px; font-size:13px; z-index:9999; opacity:0; transition:opacity .3s; pointer-events:none; max-width:90vw; text-align:center; }
 
@@ -161,6 +177,7 @@ body { background:#0f0f1a; color:white; font-family:sans-serif; min-height:100vh
     <div class="hstat">⚔️ DMG: <span id="hudDmg">5</span></div>
     <div class="hstat">🍀 Luck: <span id="hudLuck">1x</span></div>
     <div class="hstat">📦 Zniszczone: <span id="hudSafes">0</span></div>
+    <div class="hstat">💎 <span id="hudGems">0</span></div>
   </div>
   <div id="healthBarWrap"><div id="healthBar"></div></div>
 </div>
@@ -247,10 +264,22 @@ body { background:#0f0f1a; color:white; font-family:sans-serif; min-height:100vh
   </div>
 </div>
 
+<!-- SETTINGS -->
+<div id="settingsOverlay">
+  <div id="settingsBox">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <h2>⚙️ Ustawienia</h2>
+      <button class="inv-close" onclick="closeSettings()">✕</button>
+    </div>
+    <div id="settingsContent"></div>
+  </div>
+</div>
+
 <!-- BOTTOM BAR -->
 <div id="bottomBar">
   <button class="bb-btn" onclick="openInv()">📦 Inventory</button>
   <button class="bb-btn" onclick="openShop()">🛒 Sklep</button>
+  <button class="bb-btn" onclick="openSettings()">⚙️ Ustawienia</button>
   <button class="bb-btn" onclick="manualSave()">💾 Zapisz</button>
   <span id="saveStatus2"></span>
 </div>
@@ -260,7 +289,618 @@ body { background:#0f0f1a; color:white; font-family:sans-serif; min-height:100vh
 <script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+
+const app = initializeApp({
+  apiKey:"AIzaSyC0EVa-GEbOqMsG3VbLkFEJQ1R9b_IYBng",
+  authDomain:"mega-clicker-1.firebaseapp.com",
+  projectId:"mega-clicker-1",
+  storageBucket:"mega-clicker-1.firebasestorage.app",
+  messagingSenderId:"806784361392",
+  appId:"1:806784361392:web:dcf9fa5bb0682a837dac75"
+});
+const auth = getAuth(app);
+const db   = getFirestore(app);
+let currentUser = null;
+
+// ── GAME CODE
+const GAME_CODE = "ADMIN";
+let codeUnlocked = localStorage.getItem("ss_unlocked") === "1";
+if (codeUnlocked) document.getElementById("codeGate").style.display = "none";
+
+window.checkCode = function() {
+  const val = document.getElementById("codeInput2").value.trim().toUpperCase();
+  if (val === GAME_CODE) {
+    localStorage.setItem("ss_unlocked","1");
+    document.getElementById("codeGate").style.display = "none";
+    toast2("🔓 Dostęp przyznany!");
+  } else {
+    document.getElementById("codeErr").textContent = "❌ Nieprawidłowy kod!";
+  }
+};
+document.getElementById("codeInput2").addEventListener("keydown", e => { if(e.key==="Enter") checkCode(); });
+
+// ── RARITIES
+const RARITIES = [
+  { id:"rare",      name:"Rare",       emoji:"🔒", hp:20,      chance:0.58735, color:"#60a5fa", hpColor:"#3b82f6" },
+  { id:"superrare", name:"Super Rare", emoji:"🔐", hp:100,     chance:0.25,    color:"#a78bfa", hpColor:"#7c3aed" },
+  { id:"epic",      name:"Epic",       emoji:"💠", hp:500,     chance:0.10,    color:"#c084fc", hpColor:"#9333ea" },
+  { id:"legendary", name:"Legendary",  emoji:"🏆", hp:2500,    chance:0.05,    color:"#fbbf24", hpColor:"#d97706" },
+  { id:"mythic",    name:"Mythic",     emoji:"💀", hp:5000,    chance:0.01,    color:"#f472b6", hpColor:"#db2777" },
+  { id:"cosmic",    name:"Cosmic",     emoji:"🌌", hp:25000,   chance:0.0025,  color:"#67e8f9", hpColor:"#0891b2" },
+  { id:"celestial", name:"Celestial",  emoji:"✨", hp:100000,  chance:0.0001,  color:"#fde68a", hpColor:"#ca8a04" },
+  { id:"secret",    name:"SECRET",     emoji:"❓", hp:5000000, chance:0.00005, color:"#ff0080", hpColor:"#8000ff" },
+];
+
+// ── ITEMS per rarity — 5 tiers: 50% / 35% / 10% / 4% / 1%
+// value multipliers: 50%=1x, 35%=2x, 10%=5x, 4%=12x, 1%=30x
+const ITEM_TIERS = [
+  { w:0.50, mult:1.0 },
+  { w:0.35, mult:2.0 },
+  { w:0.10, mult:5.0 },
+  { w:0.04, mult:12.0 },
+  { w:0.01, mult:30.0 },
+];
+
+const ITEMS = {
+  rare:      [
+    [{e:"📖",n:"Książka"},{e:"🖊️",n:"Długopis"},{e:"🎲",n:"Kostka"}],      // 50%
+    [{e:"🧲",n:"Magnes"},{e:"🔑",n:"Klucz"}],                                // 35%
+    [{e:"🪄",n:"Różdżka"}],                                                   // 10%
+    [{e:"🎩",n:"Cylinder"}],                                                  // 4%
+    [{e:"🌟",n:"Gwiazdka Lucky"}],                                            // 1%
+  ],
+  superrare: [
+    [{e:"💍",n:"Pierścionek"},{e:"🏺",n:"Waza"}],
+    [{e:"🎭",n:"Maska"},{e:"🪙",n:"Moneta"}],
+    [{e:"🗺️",n:"Mapa Skarbów"}],
+    [{e:"🔭",n:"Teleskop"}],
+    [{e:"🧿",n:"Oko Losu"}],
+  ],
+  epic:      [
+    [{e:"⚗️",n:"Eliksir"},{e:"🔮",n:"Kryształ"}],
+    [{e:"🗡️",n:"Sztylet"},{e:"📜",n:"Zwój"}],
+    [{e:"🧿",n:"Amulet Mocy"}],
+    [{e:"🌀",n:"Portal Shard"}],
+    [{e:"⚡",n:"Piorun Zeusa"}],
+  ],
+  legendary: [
+    [{e:"👑",n:"Korona"},{e:"🏅",n:"Medal"}],
+    [{e:"🔱",n:"Trójząb"},{e:"⚜️",n:"Herb"}],
+    [{e:"🌟",n:"Gwiazda Legendy"}],
+    [{e:"🗝️",n:"Klucz Bogów"}],
+    [{e:"💠",n:"Kryształ Wieczny"}],
+  ],
+  mythic:    [
+    [{e:"💎",n:"Diament"},{e:"🌑",n:"Czarna Perła"}],
+    [{e:"🧬",n:"DNA Bogów"},{e:"🌊",n:"Oceania"}],
+    [{e:"⚡",n:"Burzowy Kamień"}],
+    [{e:"🌒",n:"Mroczny Krzyształ"}],
+    [{e:"👁️",n:"Trzecie Oko"}],
+  ],
+  cosmic:    [
+    [{e:"🌌",n:"Nebula"},{e:"🪐",n:"Saturn"}],
+    [{e:"🌀",n:"Czarna Dziura"},{e:"🛸",n:"UFO"}],
+    [{e:"✨",n:"Supernowa"}],
+    [{e:"🌠",n:"Meteor Kosmiczny"}],
+    [{e:"🔭",n:"Oko Wszechświata"}],
+  ],
+  celestial: [
+    [{e:"☀️",n:"Ra"},{e:"🌈",n:"Tęcza Bogów"}],
+    [{e:"🔱",n:"Posejdon"},{e:"⚔️",n:"Excalibur"}],
+    [{e:"💫",n:"Absolut"}],
+    [{e:"🌞",n:"Słońce Bogów"}],
+    [{e:"🏆",n:"Trofeum Niebian"}],
+  ],
+  secret:    [
+    [{e:"🆘",n:"Artefakt X"},{e:"👁️",n:"Oko Bogów"}],
+    [{e:"🌑",n:"Void Shard"},{e:"🕳️",n:"Black Matter"}],
+    [{e:"∞",n:"Nieskończoność"}],
+    [{e:"🔮",n:"Kula Prawdy"}],
+    [{e:"💀",n:"Kość Absolutu"}],
+  ],
+};
+
+const ITEM_BASE_VALUE = { rare:50, superrare:200, epic:1000, legendary:5000, mythic:20000, cosmic:100000, celestial:500000, secret:10000000 };
+
+function rollItemTier() {
+  const r = Math.random();
+  let cum = 0;
+  for (let i = 0; i < ITEM_TIERS.length; i++) {
+    cum += ITEM_TIERS[i].w;
+    if (r < cum) return i;
+  }
+  return 0;
+}
+
+// ── STATE
+let ss = {
+  coins:0, damage:5, luck:1, safesDestroyed:0, gems:0,
+  inventory:[], usedCodes:{}, achDone:{},
+  shopLevels:{ luck:0, dmg:0 },
+  settings:{ autoSell:false, autoKeep:false },
+  unlockedAutoSell:false, unlockedAutoKeep:false,
+};
+
+function migrateSS(s) {
+  s.coins=s.coins||0; s.damage=s.damage||5; s.luck=s.luck||1;
+  s.safesDestroyed=s.safesDestroyed||0; s.inventory=s.inventory||[];
+  s.usedCodes=s.usedCodes||{}; s.achDone=s.achDone||{};
+  s.shopLevels=s.shopLevels||{luck:0,dmg:0};
+  s.gems=s.gems||0;
+  s.settings=s.settings||{autoSell:false,autoKeep:false};
+  s.unlockedAutoSell=s.unlockedAutoSell||false;
+  s.unlockedAutoKeep=s.unlockedAutoKeep||false;
+  return s;
+}
+
+// ── CURRENT SAFE
+let curSafe = null;
+let skipCooldown = 0;
+let skipInterval = null;
+let pendingDrop = null;
+
+function spawnSafe() {
+  const roll = Math.random() / ss.luck;
+  let cum = 0;
+  let chosen = RARITIES[0];
+  for (const r of RARITIES) {
+    cum += r.chance;
+    if (roll < cum) { chosen = r; break; }
+  }
+  curSafe = { ...chosen, curHp: chosen.hp };
+  updateSafeUI();
+}
+
+function updateSafeUI() {
+  if (!curSafe) return;
+  const pct = (curSafe.curHp / curSafe.hp * 100).toFixed(1);
+  document.getElementById("safeEmoji").textContent = curSafe.emoji;
+  document.getElementById("rarityLabel").textContent = curSafe.name;
+  document.getElementById("rarityLabel").className = "rar-" + curSafe.id;
+  document.getElementById("healthText").textContent = Math.ceil(curSafe.curHp) + " / " + curSafe.hp + " HP";
+  document.getElementById("healthBar").style.width = pct + "%";
+  document.getElementById("healthBar").style.background = curSafe.hpColor;
+}
+
+window.hitSafe = function() {
+  if (!curSafe || document.getElementById("dropPopup").classList.contains("show")) return;
+  const dmg = ss.damage;
+  curSafe.curHp -= dmg;
+  spawnDmgPop(dmg);
+  const em = document.getElementById("safeEmoji");
+  em.classList.remove("shake"); void em.offsetWidth; em.classList.add("shake");
+  if (curSafe.curHp <= 0) {
+    ss.safesDestroyed++;
+    ss.coins += Math.round(curSafe.hp * 0.5 * ss.luck);
+    checkAch2();
+    dropItem();
+  } else {
+    updateSafeUI();
+  }
+};
+
+function dropItem() {
+  const tierIdx = rollItemTier();
+  const tierItems = (ITEMS[curSafe.id] || ITEMS.rare)[tierIdx] || (ITEMS[curSafe.id]||ITEMS.rare)[0];
+  const item = tierItems[Math.floor(Math.random() * tierItems.length)];
+  const baseVal = ITEM_BASE_VALUE[curSafe.id] || 50;
+  const tierMult = ITEM_TIERS[tierIdx].mult;
+  const isShiny = Math.random() < 0.01;
+  const val = Math.round(baseVal * tierMult * (isShiny ? 4 : 1));
+
+  pendingDrop = {
+    emoji: item.e, name: item.n, rarity: curSafe.id, rarityName: curSafe.name,
+    value: val, baseValue: baseVal, tierMult, isShiny,
+    acquiredAt: Date.now(), id: Date.now() + Math.random(),
+  };
+
+  checkAch2();
+
+  // Auto-sell or auto-keep
+  if (ss.settings.autoSell && ss.unlockedAutoSell) {
+    ss.coins += val;
+    toast2("💰 Auto-sprzedano: " + item.n + " za " + fmt2(val) + "!");
+    pendingDrop = null;
+    updateHUD(); autoSave(); nextSafe(); return;
+  }
+  if (ss.settings.autoKeep && ss.unlockedAutoKeep) {
+    ss.inventory.push(pendingDrop);
+    toast2("📦 Auto-zachowano: " + item.n + "!");
+    pendingDrop = null;
+    updateHUD(); autoSave(); nextSafe(); return;
+  }
+
+  // Show popup
+  document.getElementById("dropEmoji").textContent = item.e + (isShiny?" ✨":"");
+  document.getElementById("dropName").textContent = item.n;
+  document.getElementById("dropRarity").textContent = curSafe.name + " (tier " + (tierIdx+1) + "/5)";
+  document.getElementById("dropRarity").className = "rar-" + curSafe.id;
+  document.getElementById("dropValue").textContent = "💰 " + fmt2(val) + " coinów";
+  document.getElementById("dropShiny").style.display = isShiny ? "block" : "none";
+  document.getElementById("dropPopup").classList.add("show");
+  updateHUD(); autoSave();
+}
+
+window.keepItem = function() {
+  if (!pendingDrop) return;
+  ss.inventory.push(pendingDrop);
+  pendingDrop = null;
+  document.getElementById("dropPopup").classList.remove("show");
+  toast2("📦 Przedmiot zachowany!");
+  nextSafe();
+};
+
+window.sellItem = function() {
+  if (!pendingDrop) return;
+  ss.coins += pendingDrop.value;
+  pendingDrop = null;
+  document.getElementById("dropPopup").classList.remove("show");
+  toast2("💰 Sprzedano za " + fmt2(ss.coins) + "!");
+  updateHUD(); nextSafe();
+};
+
+function nextSafe() {
+  curSafe = null;
+  setTimeout(spawnSafe, 400);
+}
+
+// ── SKIP
+window.skipSafe = function() {
+  if (skipCooldown > 0) return;
+  skipCooldown = 30;
+  document.getElementById("skipBtn").disabled = true;
+  updateSkipTimer();
+  nextSafe();
+  toast2("⏭️ Sejf pominięty!");
+};
+
+function updateSkipTimer() {
+  if (skipInterval) clearInterval(skipInterval);
+  skipInterval = setInterval(() => {
+    skipCooldown--;
+    if (skipCooldown <= 0) {
+      skipCooldown = 0;
+      document.getElementById("skipBtn").disabled = false;
+      document.getElementById("skipTimer").textContent = "";
+      clearInterval(skipInterval);
+    } else {
+      document.getElementById("skipTimer").textContent = "Cooldown: " + skipCooldown + "s";
+    }
+  }, 1000);
+}
+
+// ── DAMAGE POP
+function spawnDmgPop(dmg) {
+  const el = document.createElement("div");
+  el.className = "dmgpop";
+  el.textContent = "-" + dmg;
+  el.style.left = (35 + Math.random()*30) + "%";
+  el.style.top = "42%";
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 800);
+}
+
+// ── INVENTORY UI
+window.openInv = function() { buildInvGrid(); document.getElementById("invOverlay").classList.add("show"); };
+window.closeInv = function() { document.getElementById("invOverlay").classList.remove("show"); };
+
+function buildInvGrid() {
+  const grid = document.getElementById("invGrid");
+  const countEl = document.getElementById("invCount");
+  grid.innerHTML = "";
+  countEl.textContent = ss.inventory.length + " przedmiotów";
+  if (!ss.inventory.length) {
+    grid.innerHTML = "<div style='grid-column:span 4;text-align:center;color:#555;padding:30px;'>Brak przedmiotów!</div>";
+    return;
+  }
+  ss.inventory.forEach((item, idx) => {
+    const growthPct = item.growthPct || 0;
+    const currentVal = Math.round(item.value * (1 + growthPct * 0.01));
+    const cell = document.createElement("div");
+    cell.className = "inv-cell" + (item.isShiny ? " shiny" : "");
+    cell.innerHTML = `
+      <div class="inv-emoji">${item.emoji}${item.isShiny?"✨":""}</div>
+      <div class="inv-iname">${item.name}</div>
+      <div class="inv-rar rar-${item.rarity}">${item.rarityName}</div>
+      <div class="inv-val">💰 ${fmt2(currentVal)}</div>
+      <div class="inv-growth">+${growthPct}% wzrost</div>
+    `;
+    cell.onclick = () => {
+      if (confirm("Sprzedać " + item.name + " za " + fmt2(currentVal) + " coinów?")) {
+        ss.coins += currentVal;
+        ss.inventory.splice(idx, 1);
+        buildInvGrid(); updateHUD(); autoSave();
+        toast2("💰 Sprzedano za " + fmt2(currentVal) + "!");
+      }
+    };
+    grid.appendChild(cell);
+  });
+}
+
+// Value growth — only while playing, no offline
+setInterval(() => {
+  ss.inventory.forEach(item => {
+    item.growthPct = (item.growthPct || 0) + 1;
+  });
+  if (document.getElementById("invOverlay").classList.contains("show")) buildInvGrid();
+}, 30000);
+
+// ── SHOP
+const SHOP_ITEMS = [
+  { id:"luck", name:"🍀 Luck +0.1x", desc:"Zwiększa szanse na rzadsze sejfy", baseCost:500, costMult:2.5 },
+  { id:"dmg",  name:"⚔️ Damage +5",  desc:"Zadajesz więcej obrażeń",          baseCost:300, costMult:2   },
+];
+
+window.openShop = function() {
+  buildShopList();
+  document.getElementById("shopOverlay").classList.add("show");
+};
+window.closeShop = function() { document.getElementById("shopOverlay").classList.remove("show"); };
+
+function buildShopList() {
+  const list = document.getElementById("shopList");
+  list.innerHTML = "";
+  SHOP_ITEMS.forEach(item => {
+    const lvl = ss.shopLevels[item.id] || 0;
+    const cost = Math.round(item.baseCost * Math.pow(item.costMult, lvl));
+    const div = document.createElement("div");
+    div.className = "shop-item";
+    div.innerHTML = `
+      <div class="shop-item-info">
+        <h4>${item.name} <span style="color:#555;font-size:11px;">(Lvl ${lvl})</span></h4>
+        <p>${item.desc}</p>
+      </div>
+      <button class="shop-buy-btn" ${ss.coins<cost?"disabled":""} onclick="buyShopItem('${item.id}',${cost})">💰 ${fmt2(cost)}</button>
+    `;
+    list.appendChild(div);
+  });
+  document.getElementById("shopCoins").textContent = "💰 " + fmt2(ss.coins);
+}
+
+window.buyShopItem = function(id, cost) {
+  if (ss.coins < cost) { toast2("Za mało coinów!"); return; }
+  ss.coins -= cost;
+  ss.shopLevels[id] = (ss.shopLevels[id]||0) + 1;
+  if (id === "luck") ss.luck = parseFloat((ss.luck + 0.1).toFixed(2));
+  if (id === "dmg")  ss.damage += 5;
+  buildShopList(); updateHUD(); autoSave(); toast2("✅ Kupiono!");
+};
+
+// ── SETTINGS
+window.openSettings = function() {
+  buildSettings();
+  document.getElementById("settingsOverlay").classList.add("show");
+};
+window.closeSettings = function() { document.getElementById("settingsOverlay").classList.remove("show"); };
+
+function buildSettings() {
+  const box = document.getElementById("settingsContent");
+  box.innerHTML = `
+    <div class="setting-row">
+      <div class="setting-info">
+        <h4>💰 Auto-Sell</h4>
+        <p>Automatycznie sprzedaje przedmioty${!ss.unlockedAutoSell?" — <b style='color:#ffd200'>Odblokuj za 50 💎</b>":""}</p>
+      </div>
+      ${ss.unlockedAutoSell
+        ? `<button class="toggle-btn ${ss.settings.autoSell?'on':'off'}" onclick="toggleSetting('autoSell')"></button>`
+        : `<button class="shop-buy-btn" onclick="buySettingGem('autoSell')">50 💎</button>`
+      }
+    </div>
+    <div class="setting-row">
+      <div class="setting-info">
+        <h4>📦 Auto-Keep</h4>
+        <p>Automatycznie zachowuje przedmioty${!ss.unlockedAutoKeep?" — <b style='color:#ffd200'>Odblokuj za 50 💎</b>":""}</p>
+      </div>
+      ${ss.unlockedAutoKeep
+        ? `<button class="toggle-btn ${ss.settings.autoKeep?'on':'off'}" onclick="toggleSetting('autoKeep')"></button>`
+        : `<button class="shop-buy-btn" onclick="buySettingGem('autoKeep')">50 💎</button>`
+      }
+    </div>
+    <div style="font-size:12px;color:#555;padding:8px 0;">💎 Masz: <b style="color:#ffd200;">${ss.gems}</b> gemów</div>
+    <div class="setting-row" style="border-top:1px solid rgba(255,60,60,.2);margin-top:8px;">
+      <div class="setting-info">
+        <h4 style="color:#ef4444;">🗑️ Reset danych</h4>
+        <p>Usuwa cały postęp Safe Simulator</p>
+      </div>
+      <button class="shop-buy-btn" style="background:#ef4444;color:white;" onclick="resetData()">Reset</button>
+    </div>
+  `;
+}
+
+window.toggleSetting = function(key) {
+  // Nie można mieć obu jednocześnie
+  if (key === "autoSell" && !ss.settings.autoSell) ss.settings.autoKeep = false;
+  if (key === "autoKeep" && !ss.settings.autoKeep) ss.settings.autoSell = false;
+  ss.settings[key] = !ss.settings[key];
+  buildSettings(); autoSave();
+  toast2(ss.settings[key] ? "✅ " + key + " włączone!" : "❌ " + key + " wyłączone!");
+};
+
+window.buySettingGem = function(key) {
+  if (ss.gems < 50) { toast2("Za mało 💎! Potrzebujesz 50 gemów (zdobądź z osiągnięć)!"); return; }
+  ss.gems -= 50;
+  if (key === "autoSell") ss.unlockedAutoSell = true;
+  if (key === "autoKeep") ss.unlockedAutoKeep = true;
+  buildSettings(); autoSave();
+  toast2("✅ Odblokowano " + key + "!");
+};
+
+window.resetData = function() {
+  if (!confirm("Na pewno chcesz zresetować CAŁY postęp w Safe Simulator? Tego nie można cofnąć!")) return;
+  ss = migrateSS({});
+  updateHUD(); autoSave();
+  toast2("🗑️ Dane zresetowane!");
+  closeSettings();
+};
+
+// ── ACHIEVEMENTS
+const ACHS = [
+  { id:"first",   icon:"🔒", name:"Pierwszy Sejf",  desc:"Zniszcz 1 sejf",         gems:2,  check:s=>s.safesDestroyed>=1 },
+  { id:"s10",     icon:"💥", name:"Demoler",         desc:"Zniszcz 10 sejfów",      gems:3,  check:s=>s.safesDestroyed>=10 },
+  { id:"s100",    icon:"🏆", name:"Mistrz Sejfów",   desc:"Zniszcz 100 sejfów",     gems:5,  check:s=>s.safesDestroyed>=100 },
+  { id:"s1000",   icon:"👑", name:"Legendarny",      desc:"Zniszcz 1000 sejfów",    gems:15, check:s=>s.safesDestroyed>=1000 },
+  { id:"s10000",  icon:"🌟", name:"Sejf Bóg",        desc:"Zniszcz 10 000 sejfów",  gems:30, check:s=>s.safesDestroyed>=10000 },
+  { id:"coin1k",  icon:"💰", name:"Bogacz",          desc:"Zdobądź 1000 coinów",    gems:2,  check:s=>s.coins>=1000 },
+  { id:"coin1m",  icon:"💎", name:"Milioner",        desc:"Zdobądź 1M coinów",      gems:5,  check:s=>s.coins>=1e6 },
+  { id:"coin1b",  icon:"🏦", name:"Miliardjer",      desc:"Zdobądź 1B coinów",      gems:15, check:s=>s.coins>=1e9 },
+  { id:"inv10",   icon:"📦", name:"Kolekcjoner",     desc:"Zbierz 10 przedmiotów",  gems:3,  check:s=>s.inventory.length>=10 },
+  { id:"inv50",   icon:"🗄️", name:"Magazynier",      desc:"Zbierz 50 przedmiotów", gems:8,  check:s=>s.inventory.length>=50 },
+  { id:"luck5",   icon:"🍀", name:"Szczęściarz",     desc:"Osiągnij Luck 2x",       gems:5,  check:s=>s.luck>=2 },
+  { id:"dmg100",  icon:"⚔️", name:"Wojownik",        desc:"Osiągnij 100 DMG",       gems:5,  check:s=>s.damage>=100 },
+  { id:"epic1",   icon:"💠", name:"Epicki łup",      desc:"Zniszcz Epic sejf",       gems:5,  check:()=>false, special:true },
+  { id:"shiny1",  icon:"✨", name:"Shiny!",          desc:"Znajdź Shiny przedmiot", gems:10, check:()=>false, special:true },
+  { id:"secret1", icon:"❓", name:"???",             desc:"Zniszcz Secret sejf",     gems:50, check:()=>false, special:true },
+  { id:"tier5",   icon:"🎯", name:"Top Tier",        desc:"Zdobądź przedmiot Tier5", gems:10, check:()=>false, special:true },
+];
+
+function giveGem(amount) {
+  ss.gems += amount;
+  toast2("💎 +" + amount + " gem" + (amount>1?"y":"") + "!");
+  updateHUD();
+}
+
+function checkAch2() {
+  let changed = false;
+  ACHS.forEach(a => {
+    if (ss.achDone[a.id] || a.special) return;
+    if (a.check(ss)) {
+      ss.achDone[a.id] = true;
+      giveGem(a.gems);
+      setTimeout(() => toast2("🏆 Osiągnięcie: " + a.name + "! +" + a.gems + " 💎"), 200);
+      changed = true;
+    }
+  });
+  // Special achievements
+  if (!ss.achDone.epic1 && curSafe && ["epic","legendary","mythic","cosmic","celestial","secret"].includes(curSafe.id)) {
+    ss.achDone.epic1 = true; giveGem(5); setTimeout(()=>toast2("🏆 Epicki łup! +5 💎"),200); changed=true;
+  }
+  if (!ss.achDone.secret1 && curSafe && curSafe.id==="secret") {
+    ss.achDone.secret1 = true; giveGem(50); setTimeout(()=>toast2("🏆 ??? +50 💎"),200); changed=true;
+  }
+  if (!ss.achDone.shiny1 && pendingDrop && pendingDrop.isShiny) {
+    ss.achDone.shiny1 = true; giveGem(10); setTimeout(()=>toast2("🏆 Shiny! +10 💎"),200); changed=true;
+  }
+  if (!ss.achDone.tier5 && pendingDrop && pendingDrop.tierMult===30) {
+    ss.achDone.tier5 = true; giveGem(10); setTimeout(()=>toast2("🏆 Top Tier! +10 💎"),200); changed=true;
+  }
+  if (changed) buildAchGrid2();
+}
+
+function buildAchGrid2() {
+  const grid = document.getElementById("achGrid2");
+  if (!grid) return;
+  grid.innerHTML = "";
+  ACHS.forEach(a => {
+    const done = ss.achDone[a.id];
+    const div = document.createElement("div");
+    div.className = "ach2" + (done?" done":"");
+    div.innerHTML = `<div class="ach2-icon">${a.icon}</div><div class="ach2-name${done?" done":""}">${a.name}</div><div class="ach2-desc">${a.desc}</div><div style="font-size:10px;color:#f472b6;">${done?"✅":"🔒"} +${a.gems} 💎</div>`;
+    grid.appendChild(div);
+  });
+}
+
+window.toggleAch2 = function() {
+  const g = document.getElementById("achGrid2");
+  const t = document.getElementById("achToggle2");
+  if (g.style.display === "none") { g.style.display = "grid"; g.style.gridTemplateColumns="1fr 1fr"; g.style.gap="8px"; t.textContent = "▲"; buildAchGrid2(); }
+  else { g.style.display = "none"; t.textContent = "▼"; }
+};
+
+// ── CODES
+const CODES2 = {
+  "SAFEBONUS":  { coins:5000,  luck:0,   dmg:0,  gems:0,  desc:"+5000 coinów" },
+  "LUCKYME":    { coins:0,     luck:0.5, dmg:0,  gems:5,  desc:"+0.5 Luck, +5 💎" },
+  "POWERUP":    { coins:0,     luck:0,   dmg:25, gems:0,  desc:"+25 DMG" },
+  "SAFEVIP":    { coins:50000, luck:1,   dmg:50, gems:20, desc:"+50000 coinów, +1 Luck, +50 DMG, +20 💎" },
+  "MIECIOW1SS": { coins:10000, luck:0.3, dmg:10, gems:10, desc:"+10000 coinów, +0.3 Luck, +10 DMG, +10 💎" },
+};
+
+window.redeemCode2 = function() {
+  const raw = document.getElementById("codeInput3").value.trim().toUpperCase();
+  const el  = document.getElementById("codeStatus2");
+  if (!raw) { el.style.color="#f88"; el.textContent="Wpisz kod!"; return; }
+  if (ss.usedCodes[raw]) { el.style.color="#f88"; el.textContent="❌ Już użyty!"; return; }
+  const c = CODES2[raw];
+  if (!c) { el.style.color="#f88"; el.textContent="❌ Nieprawidłowy kod!"; return; }
+  ss.usedCodes[raw] = true;
+  if (c.coins) ss.coins += c.coins;
+  if (c.luck)  ss.luck  = parseFloat((ss.luck + c.luck).toFixed(2));
+  if (c.dmg)   ss.damage += c.dmg;
+  if (c.gems)  ss.gems += c.gems;
+  el.style.color="#00ffcc"; el.textContent="✅ " + c.desc;
+  document.getElementById("codeInput3").value = "";
+  updateHUD(); autoSave(); toast2("🎁 " + c.desc);
+};
+
+// ── HUD
+function updateHUD() {
+  document.getElementById("hudCoins").textContent = fmt2(ss.coins);
+  document.getElementById("hudDmg").textContent   = ss.damage;
+  document.getElementById("hudLuck").textContent  = ss.luck + "x";
+  document.getElementById("hudSafes").textContent = ss.safesDestroyed;
+  document.getElementById("hudGems").textContent  = ss.gems;
+}
+
+// ── FORMAT
+function fmt2(n) {
+  const SFX2 = [[1e18,"Q"],[1e15,"q"],[1e12,"T"],[1e9,"B"],[1e6,"M"],[1e3,"k"]];
+  for (const [v,s] of SFX2) if (n>=v) return (n/v).toFixed(2)+s;
+  return Math.round(n).toString();
+}
+
+// ── SAVE / LOAD
+async function saveGame() {
+  if (!currentUser) return;
+  try {
+    await setDoc(doc(db,"safeSaves",currentUser.uid), { data: JSON.stringify(ss), savedAt: new Date().toISOString() });
+    document.getElementById("saveStatus2").textContent = "Zapisano " + new Date().toLocaleTimeString();
+  } catch(e) { document.getElementById("saveStatus2").textContent = "Błąd zapisu"; }
+}
+
+async function loadGame() {
+  if (!currentUser) return;
+  try {
+    const snap = await getDoc(doc(db,"safeSaves",currentUser.uid));
+    if (snap.exists()) ss = migrateSS(JSON.parse(snap.data().data));
+    else ss = migrateSS(ss);
+  } catch(e) { ss = migrateSS(ss); }
+}
+
+let autoSaveTimer = null;
+function autoSave() { clearTimeout(autoSaveTimer); autoSaveTimer = setTimeout(saveGame, 5000); }
+window.manualSave = function() { saveGame(); toast2("💾 Zapisano!"); };
+
+// ── TOAST
+let toastT;
+function toast2(msg) {
+  const el = document.getElementById("toast2");
+  el.textContent = msg; el.style.opacity = "1";
+  clearTimeout(toastT); toastT = setTimeout(() => el.style.opacity = "0", 3000);
+}
+
+// ── START
+function startGame() {
+  document.getElementById("main").style.display = "flex";
+  document.getElementById("hud").style.display  = "flex";
+  document.getElementById("bottomBar").style.display = "flex";
+  document.getElementById("backToMenu").style.display = "block";
+  updateHUD();
+  buildAchGrid2();
+  spawnSafe();
+}
+
+// ── AUTH
+onAuthStateChanged(auth, async user => {
+  currentUser = user;
+  if (user && codeUnlocked) {
+    await loadGame();
+    startGame();
+  }
+});
+
+setInterval(autoSave, 30000);
+</script>
 
 const app = initializeApp({
   apiKey:"AIzaSyC0EVa-GEbOqMsG3VbLkFEJQ1R9b_IYBng",
