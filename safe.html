@@ -142,7 +142,73 @@ body { background:#0f0f1a; color:white; font-family:sans-serif; min-height:100vh
 /* ── TOAST ── */
 #toast2 { position:fixed; bottom:50px; left:50%; transform:translateX(-50%); background:rgba(0,0,0,.9); border:1px solid rgba(255,255,255,.18); border-radius:10px; padding:10px 20px; font-size:13px; z-index:9999; opacity:0; transition:opacity .3s; pointer-events:none; max-width:90vw; text-align:center; }
 
-/* Rarity colors */
+/* ── NICK POPUP ── */
+#nickOverlay2 { position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:10000; display:none; align-items:center; justify-content:center; }
+#nickOverlay2.show { display:flex; }
+#nickBox2 { background:#1a1a2e; border:2px solid #ffd200; border-radius:16px; padding:28px 24px; width:min(340px,90vw); display:flex; flex-direction:column; gap:14px; }
+#nickBox2 h2 { margin:0; color:#ffd200; font-size:20px; text-align:center; }
+#nickInput2 { padding:12px 14px; background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.2); border-radius:10px; color:white; font-size:15px; outline:none; }
+#nickInput2:focus { border-color:#ffd200; }
+#nickSaveBtn2 { padding:12px; background:linear-gradient(135deg,#ffd200,#f59e0b); border:none; border-radius:10px; color:#111; font-weight:bold; font-size:14px; cursor:pointer; }
+#nickErr2 { color:#f88; font-size:12px; min-height:14px; text-align:center; }
+
+/* ── LEADERBOARD ── */
+#lbOverlay2 { position:fixed; inset:0; background:rgba(0,0,0,.88); z-index:4000; display:none; align-items:center; justify-content:center; }
+#lbOverlay2.show { display:flex; }
+#lbBox2 { background:#1a1a2e; border:2px solid rgba(255,255,255,.12); border-radius:18px; width:min(400px,96vw); max-height:85vh; display:flex; flex-direction:column; }
+#lbHeader2 { padding:16px 20px 10px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid rgba(255,255,255,.08); }
+.lb2-row { display:flex; align-items:center; gap:10px; padding:10px 16px; border-bottom:1px solid rgba(255,255,255,.05); }
+.lb2-row.me { background:rgba(255,210,0,.08); }
+.lb2-rank { font-size:16px; width:32px; text-align:center; }
+.lb2-name { flex:1; font-size:13px; }
+.lb2-val  { font-size:13px; color:#ffd200; font-weight:bold; }
+
+/* ── PET SYSTEM ── */
+#petOverlay { position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:4000; display:none; align-items:center; justify-content:center; }
+#petOverlay.show { display:flex; }
+#petBox { background:#1a1a2e; border:2px solid rgba(255,255,255,.12); border-radius:18px; width:min(540px,96vw); max-height:88vh; display:flex; flex-direction:column; }
+#petHeader { padding:14px 18px 0; display:flex; gap:0; border-bottom:1px solid rgba(255,255,255,.08); }
+.pet-tab { padding:10px 18px; background:none; border:none; color:#555; font-size:13px; font-weight:bold; cursor:pointer; border-bottom:2px solid transparent; }
+.pet-tab.active { color:#ffd200; border-bottom-color:#ffd200; }
+#petClose { margin-left:auto; background:none; border:none; color:#888; font-size:20px; cursor:pointer; padding:0 4px; }
+#petContent { padding:14px; overflow-y:auto; flex:1; }
+.pet-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.pet-cell { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:10px 6px; text-align:center; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:3px; transition:background .15s; }
+.pet-cell:hover { background:rgba(255,255,255,.1); }
+.pet-cell.equipped { border-color:#ffd200; background:rgba(255,210,0,.08); }
+.pet-emoji { font-size:26px; }
+.pet-name { font-size:10px; color:#ccc; }
+.pet-stats { font-size:10px; color:#ffd200; font-weight:bold; }
+.pet-rar { font-size:9px; font-weight:bold; }
+.egg-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+.egg-cell { background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.1); border-radius:12px; padding:14px 6px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px; }
+.egg-emoji { font-size:36px; animation:eggWobble 2s ease-in-out infinite; }
+@keyframes eggWobble { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-8deg)} 75%{transform:rotate(8deg)} }
+.egg-rar { font-size:10px; font-weight:bold; }
+.egg-count { font-size:11px; color:#888; }
+.open-btns { display:flex; gap:6px; margin-top:6px; flex-wrap:wrap; justify-content:center; }
+.open-btn { padding:5px 10px; border:none; border-radius:7px; font-size:11px; font-weight:bold; cursor:pointer; background:rgba(255,210,0,.2); border:1px solid rgba(255,210,0,.4); color:#ffd200; }
+.open-btn:hover { background:rgba(255,210,0,.35); }
+.open-btn:disabled { opacity:.35; cursor:not-allowed; }
+.open-btn.gem-btn { background:rgba(244,114,182,.15); border-color:rgba(244,114,182,.4); color:#f472b6; }
+
+/* ── EGG OPEN ANIMATION ── */
+#eggOpenOverlay { position:fixed; inset:0; background:rgba(0,0,0,.95); z-index:9500; display:none; align-items:center; justify-content:center; flex-direction:column; gap:20px; }
+#eggOpenOverlay.show { display:flex; }
+#eggOpenEmoji { font-size:100px; }
+#eggOpenEmoji.wobble { animation:eggWobble2 .4s ease-in-out 3; }
+#eggOpenEmoji.crack  { animation:eggCrack .5s ease-in-out forwards; }
+@keyframes eggWobble2 { 0%,100%{transform:rotate(0)} 25%{transform:rotate(-15deg)} 75%{transform:rotate(15deg)} }
+@keyframes eggCrack   { 0%{transform:scale(1)} 50%{transform:scale(1.3)} 100%{transform:scale(0);opacity:0} }
+#eggResultGrid { display:flex; gap:12px; flex-wrap:wrap; justify-content:center; max-width:500px; }
+.egg-result-card { background:#1e1e2e; border:2px solid rgba(255,255,255,.2); border-radius:14px; padding:16px; text-align:center; min-width:100px; animation:popIn .4s ease; }
+@keyframes popIn { 0%{transform:scale(0);opacity:0} 100%{transform:scale(1);opacity:1} }
+.erc-emoji { font-size:40px; }
+.erc-name  { font-size:12px; color:#ccc; margin:4px 0 2px; }
+.erc-rar   { font-size:11px; font-weight:bold; }
+#eggOpenClose { padding:12px 28px; background:#ffd200; color:#111; border:none; border-radius:10px; font-weight:bold; font-size:14px; cursor:pointer; display:none; }
+
+</style>
 .rar-rare      { color:#60a5fa; }
 .rar-superrare { color:#a78bfa; }
 .rar-epic      { color:#c084fc; }
@@ -264,6 +330,53 @@ body { background:#0f0f1a; color:white; font-family:sans-serif; min-height:100vh
   </div>
 </div>
 
+<!-- NICK -->
+<div id="nickOverlay2">
+  <div id="nickBox2">
+    <div style="text-align:center;font-size:48px;">🔒</div>
+    <h2>Wybierz nick!</h2>
+    <input type="text" id="nickInput2" placeholder="Twój nick..." maxlength="20">
+    <div id="nickErr2"></div>
+    <button id="nickSaveBtn2" onclick="saveNick2()">✅ Zatwierdź</button>
+  </div>
+</div>
+
+<!-- LEADERBOARD -->
+<div id="lbOverlay2">
+  <div id="lbBox2">
+    <div id="lbHeader2">
+      <h2>🏆 Topka</h2>
+      <select id="lbField2" onchange="loadLb2()" style="background:#111;color:#ccc;border:1px solid #444;border-radius:6px;padding:4px 8px;font-size:12px;">
+        <option value="safesDestroyed">Sejfy</option>
+        <option value="coins">Coiny</option>
+        <option value="pets">Pety</option>
+      </select>
+      <button class="inv-close" onclick="document.getElementById('lbOverlay2').classList.remove('show')">✕</button>
+    </div>
+    <div id="lbList2" style="overflow-y:auto;flex:1;padding:8px 0;"></div>
+    <div id="lbStatus2" style="font-size:11px;color:#555;text-align:center;padding:8px;"></div>
+  </div>
+</div>
+
+<!-- PET OVERLAY -->
+<div id="petOverlay">
+  <div id="petBox">
+    <div id="petHeader">
+      <button class="pet-tab active" id="tabPets" onclick="switchPetTab('pets')">🐾 Pety</button>
+      <button class="pet-tab" id="tabEggs" onclick="switchPetTab('eggs')">🥚 Jajka</button>
+      <button id="petClose" onclick="document.getElementById('petOverlay').classList.remove('show')">✕</button>
+    </div>
+    <div id="petContent"></div>
+  </div>
+</div>
+
+<!-- EGG OPEN ANIMATION -->
+<div id="eggOpenOverlay">
+  <div id="eggOpenEmoji">🥚</div>
+  <div id="eggResultGrid"></div>
+  <button id="eggOpenClose" onclick="closeEggOpen()">✅ Super!</button>
+</div>
+
 <!-- SETTINGS -->
 <div id="settingsOverlay">
   <div id="settingsBox">
@@ -278,8 +391,10 @@ body { background:#0f0f1a; color:white; font-family:sans-serif; min-height:100vh
 <!-- BOTTOM BAR -->
 <div id="bottomBar">
   <button class="bb-btn" onclick="openInv()">📦 Inventory</button>
+  <button class="bb-btn" onclick="document.getElementById('petOverlay').classList.add('show');switchPetTab('pets')">🐾 Pety</button>
   <button class="bb-btn" onclick="openShop()">🛒 Sklep</button>
   <button class="bb-btn" onclick="openSettings()">⚙️ Ustawienia</button>
+  <button class="bb-btn" onclick="openLb2()">🏆 Topka</button>
   <button class="bb-btn" onclick="manualSave()">💾 Zapisz</button>
   <span id="saveStatus2"></span>
 </div>
@@ -289,7 +404,7 @@ body { background:#0f0f1a; color:white; font-family:sans-serif; min-height:100vh
 <script type="module">
 import { initializeApp }   from "https://www.gstatic.com/firebasejs/12.11.0/firebase-app.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.11.0/firebase-firestore.js";
 
 const app = initializeApp({
   apiKey:"AIzaSyC0EVa-GEbOqMsG3VbLkFEJQ1R9b_IYBng",
@@ -420,6 +535,9 @@ let ss = {
   shopLevels:{ luck:0, dmg:0 },
   settings:{ autoSell:false, autoKeep:false },
   unlockedAutoSell:false, unlockedAutoKeep:false,
+  sellRarities:{ rare:true, superrare:true, epic:false, legendary:false, mythic:false, cosmic:false, celestial:false, secret:false },
+  // PET SYSTEM (jajka wkrótce)
+  pets:[], equippedPetId:null, petBonuses:{ coinMult:1, luckBonus:0, dmgBonus:0 },
 };
 
 function migrateSS(s) {
@@ -431,6 +549,10 @@ function migrateSS(s) {
   s.settings=s.settings||{autoSell:false,autoKeep:false};
   s.unlockedAutoSell=s.unlockedAutoSell||false;
   s.unlockedAutoKeep=s.unlockedAutoKeep||false;
+  s.sellRarities=s.sellRarities||{ rare:true, superrare:true, epic:false, legendary:false, mythic:false, cosmic:false, celestial:false, secret:false };
+  s.pets=s.pets||[]; s.equippedPetId=s.equippedPetId||null;
+  s.petBonuses=s.petBonuses||{ coinMult:1, luckBonus:0, dmgBonus:0 };
+  s.eggs=s.eggs||{}; s.nick=s.nick||"";
   return s;
 }
 
@@ -441,7 +563,9 @@ let skipInterval = null;
 let pendingDrop = null;
 
 function spawnSafe() {
-  const roll = Math.random() / ss.luck;
+  const luckBonus = ss.petBonuses ? ss.petBonuses.luckBonus : 0;
+  const totalLuck = ss.luck + luckBonus;
+  const roll = Math.random() / totalLuck;
   let cum = 0;
   let chosen = RARITIES[0];
   for (const r of RARITIES) {
@@ -465,14 +589,17 @@ function updateSafeUI() {
 
 window.hitSafe = function() {
   if (!curSafe || document.getElementById("dropPopup").classList.contains("show")) return;
-  const dmg = ss.damage;
+  const dmgBonus = ss.petBonuses ? ss.petBonuses.dmgBonus : 0;
+  const dmg = ss.damage + dmgBonus;
   curSafe.curHp -= dmg;
   spawnDmgPop(dmg);
   const em = document.getElementById("safeEmoji");
   em.classList.remove("shake"); void em.offsetWidth; em.classList.add("shake");
   if (curSafe.curHp <= 0) {
     ss.safesDestroyed++;
-    ss.coins += Math.round(curSafe.hp * 0.5 * ss.luck);
+    const coinBonus = ss.petBonuses ? ss.petBonuses.coinMult : 1;
+    ss.coins += Math.round(curSafe.hp * 0.5 * ss.luck * coinBonus);
+    tryDropEgg();
     checkAch2();
     dropItem();
   } else {
@@ -497,13 +624,21 @@ function dropItem() {
 
   checkAch2();
 
-  // Auto-sell or auto-keep
-  if (ss.settings.autoSell && ss.unlockedAutoSell) {
+  // Auto-sell — tylko jeśli to rarity jest zaznaczone do sprzedaży
+  if (ss.settings.autoSell && ss.unlockedAutoSell && ss.sellRarities[curSafe.id]) {
     ss.coins += val;
-    toast2("💰 Auto-sprzedano: " + item.n + " za " + fmt2(val) + "!");
+    toast2("💰 Auto-sprzedano: " + item.n + " (" + curSafe.name + ") za " + fmt2(val) + "!");
     pendingDrop = null;
     updateHUD(); autoSave(); nextSafe(); return;
   }
+  // Auto-keep — zachowuje gdy NIE jest w sellRarities lub auto-keep włączone
+  if (ss.settings.autoKeep && ss.unlockedAutoKeep && !ss.sellRarities[curSafe.id]) {
+    ss.inventory.push(pendingDrop);
+    toast2("📦 Auto-zachowano: " + item.n + " (" + curSafe.name + ")!");
+    pendingDrop = null;
+    updateHUD(); autoSave(); nextSafe(); return;
+  }
+  // Auto-keep bez filtru
   if (ss.settings.autoKeep && ss.unlockedAutoKeep) {
     ss.inventory.push(pendingDrop);
     toast2("📦 Auto-zachowano: " + item.n + "!");
@@ -676,27 +811,45 @@ window.closeSettings = function() { document.getElementById("settingsOverlay").c
 
 function buildSettings() {
   const box = document.getElementById("settingsContent");
+  const rarityNames = {
+    rare:"Rare", superrare:"Super Rare", epic:"Epic",
+    legendary:"Legendary", mythic:"Mythic", cosmic:"Cosmic",
+    celestial:"Celestial", secret:"SECRET"
+  };
+  const rarityColors = {
+    rare:"#60a5fa", superrare:"#a78bfa", epic:"#c084fc",
+    legendary:"#fbbf24", mythic:"#f472b6", cosmic:"#67e8f9",
+    celestial:"#fde68a", secret:"#ff0080"
+  };
+
+  const rarityFilterHTML = ss.unlockedAutoSell ? `
+    <div style="margin-top:10px;padding:10px;background:rgba(255,255,255,.04);border-radius:10px;">
+      <div style="font-size:11px;color:#777;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Które rarity AUTO-SELL (reszta → auto-keep):</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${Object.entries(rarityNames).map(([id,name]) => `
+          <button onclick="toggleSellRarity('${id}')" style="
+            padding:4px 10px;border-radius:6px;font-size:11px;font-weight:bold;cursor:pointer;border:2px solid ${rarityColors[id]};
+            background:${ss.sellRarities[id] ? rarityColors[id]+'33' : 'transparent'};
+            color:${rarityColors[id]};transition:all .15s;
+          ">${ss.sellRarities[id]?"💰":"📦"} ${name}</button>
+        `).join("")}
+      </div>
+      <div style="font-size:10px;color:#444;margin-top:6px;">💰 = sprzedaj automatycznie | 📦 = zachowaj automatycznie</div>
+    </div>
+  ` : "";
+
   box.innerHTML = `
     <div class="setting-row">
       <div class="setting-info">
-        <h4>💰 Auto-Sell</h4>
-        <p>Automatycznie sprzedaje przedmioty${!ss.unlockedAutoSell?" — <b style='color:#ffd200'>Odblokuj za 50 💎</b>":""}</p>
+        <h4>💰 Auto-Sell / Auto-Keep</h4>
+        <p>Automatycznie obsługuje dropy wg wybranych rarity${!ss.unlockedAutoSell?" — <b style='color:#ffd200'>Odblokuj za 50 💎</b>":""}</p>
       </div>
       ${ss.unlockedAutoSell
         ? `<button class="toggle-btn ${ss.settings.autoSell?'on':'off'}" onclick="toggleSetting('autoSell')"></button>`
         : `<button class="shop-buy-btn" onclick="buySettingGem('autoSell')">50 💎</button>`
       }
     </div>
-    <div class="setting-row">
-      <div class="setting-info">
-        <h4>📦 Auto-Keep</h4>
-        <p>Automatycznie zachowuje przedmioty${!ss.unlockedAutoKeep?" — <b style='color:#ffd200'>Odblokuj za 50 💎</b>":""}</p>
-      </div>
-      ${ss.unlockedAutoKeep
-        ? `<button class="toggle-btn ${ss.settings.autoKeep?'on':'off'}" onclick="toggleSetting('autoKeep')"></button>`
-        : `<button class="shop-buy-btn" onclick="buySettingGem('autoKeep')">50 💎</button>`
-      }
-    </div>
+    ${rarityFilterHTML}
     <div style="font-size:12px;color:#555;padding:8px 0;">💎 Masz: <b style="color:#ffd200;">${ss.gems}</b> gemów</div>
     <div class="setting-row" style="border-top:1px solid rgba(255,60,60,.2);margin-top:8px;">
       <div class="setting-info">
@@ -708,22 +861,23 @@ function buildSettings() {
   `;
 }
 
+window.toggleSellRarity = function(id) {
+  ss.sellRarities[id] = !ss.sellRarities[id];
+  buildSettings(); autoSave();
+};
+
 window.toggleSetting = function(key) {
-  // Nie można mieć obu jednocześnie
-  if (key === "autoSell" && !ss.settings.autoSell) ss.settings.autoKeep = false;
-  if (key === "autoKeep" && !ss.settings.autoKeep) ss.settings.autoSell = false;
   ss.settings[key] = !ss.settings[key];
   buildSettings(); autoSave();
   toast2(ss.settings[key] ? "✅ " + key + " włączone!" : "❌ " + key + " wyłączone!");
 };
 
 window.buySettingGem = function(key) {
-  if (ss.gems < 50) { toast2("Za mało 💎! Potrzebujesz 50 gemów (zdobądź z osiągnięć)!"); return; }
+  if (ss.gems < 50) { toast2("Za mało 💎! Potrzebujesz 50 gemów!"); return; }
   ss.gems -= 50;
   if (key === "autoSell") ss.unlockedAutoSell = true;
-  if (key === "autoKeep") ss.unlockedAutoKeep = true;
-  buildSettings(); autoSave();
-  toast2("✅ Odblokowano " + key + "!");
+  buildSettings(); updateHUD(); autoSave();
+  toast2("✅ Auto-Sell odblokowany!");
 };
 
 window.resetData = function() {
@@ -736,22 +890,22 @@ window.resetData = function() {
 
 // ── ACHIEVEMENTS
 const ACHS = [
-  { id:"first",   icon:"🔒", name:"Pierwszy Sejf",  desc:"Zniszcz 1 sejf",         gems:2,  check:s=>s.safesDestroyed>=1 },
-  { id:"s10",     icon:"💥", name:"Demoler",         desc:"Zniszcz 10 sejfów",      gems:3,  check:s=>s.safesDestroyed>=10 },
-  { id:"s100",    icon:"🏆", name:"Mistrz Sejfów",   desc:"Zniszcz 100 sejfów",     gems:5,  check:s=>s.safesDestroyed>=100 },
-  { id:"s1000",   icon:"👑", name:"Legendarny",      desc:"Zniszcz 1000 sejfów",    gems:15, check:s=>s.safesDestroyed>=1000 },
-  { id:"s10000",  icon:"🌟", name:"Sejf Bóg",        desc:"Zniszcz 10 000 sejfów",  gems:30, check:s=>s.safesDestroyed>=10000 },
-  { id:"coin1k",  icon:"💰", name:"Bogacz",          desc:"Zdobądź 1000 coinów",    gems:2,  check:s=>s.coins>=1000 },
-  { id:"coin1m",  icon:"💎", name:"Milioner",        desc:"Zdobądź 1M coinów",      gems:5,  check:s=>s.coins>=1e6 },
-  { id:"coin1b",  icon:"🏦", name:"Miliardjer",      desc:"Zdobądź 1B coinów",      gems:15, check:s=>s.coins>=1e9 },
-  { id:"inv10",   icon:"📦", name:"Kolekcjoner",     desc:"Zbierz 10 przedmiotów",  gems:3,  check:s=>s.inventory.length>=10 },
-  { id:"inv50",   icon:"🗄️", name:"Magazynier",      desc:"Zbierz 50 przedmiotów", gems:8,  check:s=>s.inventory.length>=50 },
-  { id:"luck5",   icon:"🍀", name:"Szczęściarz",     desc:"Osiągnij Luck 2x",       gems:5,  check:s=>s.luck>=2 },
-  { id:"dmg100",  icon:"⚔️", name:"Wojownik",        desc:"Osiągnij 100 DMG",       gems:5,  check:s=>s.damage>=100 },
-  { id:"epic1",   icon:"💠", name:"Epicki łup",      desc:"Zniszcz Epic sejf",       gems:5,  check:()=>false, special:true },
-  { id:"shiny1",  icon:"✨", name:"Shiny!",          desc:"Znajdź Shiny przedmiot", gems:10, check:()=>false, special:true },
-  { id:"secret1", icon:"❓", name:"???",             desc:"Zniszcz Secret sejf",     gems:50, check:()=>false, special:true },
-  { id:"tier5",   icon:"🎯", name:"Top Tier",        desc:"Zdobądź przedmiot Tier5", gems:10, check:()=>false, special:true },
+  { id:"first",   icon:"🔒", name:"Pierwszy Sejf",  desc:"Zniszcz 1 sejf",         gems:10,  check:s=>s.safesDestroyed>=1 },
+  { id:"s10",     icon:"💥", name:"Demoler",         desc:"Zniszcz 10 sejfów",      gems:25,  check:s=>s.safesDestroyed>=10 },
+  { id:"s100",    icon:"🏆", name:"Mistrz Sejfów",   desc:"Zniszcz 100 sejfów",     gems:75,  check:s=>s.safesDestroyed>=100 },
+  { id:"s1000",   icon:"👑", name:"Legendarny",      desc:"Zniszcz 1000 sejfów",    gems:200, check:s=>s.safesDestroyed>=1000 },
+  { id:"s10000",  icon:"🌟", name:"Sejf Bóg",        desc:"Zniszcz 10 000 sejfów",  gems:500, check:s=>s.safesDestroyed>=10000 },
+  { id:"coin1k",  icon:"💰", name:"Bogacz",          desc:"Zdobądź 1000 coinów",    gems:15,  check:s=>s.coins>=1000 },
+  { id:"coin1m",  icon:"💎", name:"Milioner",        desc:"Zdobądź 1M coinów",      gems:50,  check:s=>s.coins>=1e6 },
+  { id:"coin1b",  icon:"🏦", name:"Miliardjer",      desc:"Zdobądź 1B coinów",      gems:150, check:s=>s.coins>=1e9 },
+  { id:"inv10",   icon:"📦", name:"Kolekcjoner",     desc:"Zbierz 10 przedmiotów",  gems:25,  check:s=>s.inventory.length>=10 },
+  { id:"inv50",   icon:"🗄️", name:"Magazynier",      desc:"Zbierz 50 przedmiotów",  gems:75,  check:s=>s.inventory.length>=50 },
+  { id:"luck5",   icon:"🍀", name:"Szczęściarz",     desc:"Osiągnij Luck 2x",       gems:50,  check:s=>s.luck>=2 },
+  { id:"dmg100",  icon:"⚔️", name:"Wojownik",        desc:"Osiągnij 100 DMG",       gems:50,  check:s=>s.damage>=100 },
+  { id:"epic1",   icon:"💠", name:"Epicki łup",      desc:"Zniszcz Epic sejf",       gems:50,  check:()=>false, special:true },
+  { id:"shiny1",  icon:"✨", name:"Shiny!",          desc:"Znajdź Shiny przedmiot", gems:100, check:()=>false, special:true },
+  { id:"secret1", icon:"❓", name:"???",             desc:"Zniszcz Secret sejf",     gems:500, check:()=>false, special:true },
+  { id:"tier5",   icon:"🎯", name:"Top Tier",        desc:"Zdobądź przedmiot Tier5", gems:100, check:()=>false, special:true },
 ];
 
 function giveGem(amount) {
@@ -855,6 +1009,7 @@ async function saveGame() {
   try {
     await setDoc(doc(db,"safeSaves",currentUser.uid), { data: JSON.stringify(ss), savedAt: new Date().toISOString() });
     document.getElementById("saveStatus2").textContent = "Zapisano " + new Date().toLocaleTimeString();
+    updateLbNick();
   } catch(e) { document.getElementById("saveStatus2").textContent = "Błąd zapisu"; }
 }
 
@@ -879,12 +1034,287 @@ function toast2(msg) {
   clearTimeout(toastT); toastT = setTimeout(() => el.style.opacity = "0", 3000);
 }
 
+// ══════════════════════════════════════════
+//  PET SYSTEM
+// ══════════════════════════════════════════
+const PET_DEFS = {
+  epic: [
+    { id:"wolf",    emoji:"🐺", name:"Wilk",      coinMult:1.2, luckBonus:0.1, dmgBonus:5  },
+    { id:"eagle",   emoji:"🦅", name:"Orzeł",     coinMult:1.3, luckBonus:0.2, dmgBonus:0  },
+    { id:"fox",     emoji:"🦊", name:"Lis",       coinMult:1.1, luckBonus:0.3, dmgBonus:0  },
+    { id:"shark",   emoji:"🦈", name:"Rekin",     coinMult:1.0, luckBonus:0.0, dmgBonus:15 },
+    { id:"owl",     emoji:"🦉", name:"Sowa",      coinMult:1.4, luckBonus:0.1, dmgBonus:0  },
+  ],
+  legendary: [
+    { id:"dragon",  emoji:"🐉", name:"Smok",      coinMult:1.8, luckBonus:0.3, dmgBonus:20 },
+    { id:"tiger",   emoji:"🐅", name:"Tygrys",    coinMult:1.5, luckBonus:0.2, dmgBonus:30 },
+    { id:"phoenix", emoji:"🦅", name:"Feniks",    coinMult:2.0, luckBonus:0.4, dmgBonus:10 },
+    { id:"whale",   emoji:"🐋", name:"Wieloryb",  coinMult:2.2, luckBonus:0.1, dmgBonus:5  },
+    { id:"lion",    emoji:"🦁", name:"Lew",       coinMult:1.6, luckBonus:0.3, dmgBonus:25 },
+  ],
+  mythic: [
+    { id:"unicorn", emoji:"🦄", name:"Jednorożec",coinMult:2.5, luckBonus:0.6, dmgBonus:10 },
+    { id:"kraken",  emoji:"🐙", name:"Kraken",    coinMult:2.0, luckBonus:0.2, dmgBonus:50 },
+    { id:"sphinx",  emoji:"🦁", name:"Sfinks",    coinMult:3.0, luckBonus:0.5, dmgBonus:15 },
+    { id:"yeti",    emoji:"🐻", name:"Yeti",      coinMult:2.3, luckBonus:0.4, dmgBonus:35 },
+    { id:"wyvern",  emoji:"🐲", name:"Wiwerna",   coinMult:2.8, luckBonus:0.3, dmgBonus:40 },
+  ],
+  cosmic: [
+    { id:"nebula",  emoji:"🌌", name:"Nebula",    coinMult:4.0, luckBonus:0.8, dmgBonus:20 },
+    { id:"pulsar",  emoji:"⭐", name:"Pulsar",    coinMult:3.5, luckBonus:1.0, dmgBonus:30 },
+    { id:"nova",    emoji:"💫", name:"Nova",      coinMult:5.0, luckBonus:0.6, dmgBonus:10 },
+    { id:"quasar",  emoji:"🌠", name:"Quasar",    coinMult:4.5, luckBonus:0.7, dmgBonus:25 },
+    { id:"void",    emoji:"🕳️", name:"Void",      coinMult:3.0, luckBonus:1.2, dmgBonus:50 },
+  ],
+  celestial: [
+    { id:"angel",   emoji:"😇", name:"Anioł",     coinMult:6.0, luckBonus:1.5, dmgBonus:30 },
+    { id:"titan",   emoji:"⚡", name:"Tytan",     coinMult:5.0, luckBonus:1.0, dmgBonus:80 },
+    { id:"seraph",  emoji:"✨", name:"Serafin",   coinMult:7.0, luckBonus:1.3, dmgBonus:20 },
+    { id:"god",     emoji:"☀️", name:"Bóg Słońca",coinMult:8.0, luckBonus:1.2, dmgBonus:40 },
+    { id:"cosmos",  emoji:"🌈", name:"Kosmos",    coinMult:6.5, luckBonus:2.0, dmgBonus:15 },
+  ],
+  secret: [
+    { id:"absolute",emoji:"∞",  name:"Absolut",   coinMult:20.0,luckBonus:5.0, dmgBonus:200 },
+    { id:"entropy", emoji:"🕳️", name:"Entropia",  coinMult:15.0,luckBonus:4.0, dmgBonus:300 },
+    { id:"origin",  emoji:"🌑", name:"Początek",  coinMult:25.0,luckBonus:3.0, dmgBonus:150 },
+    { id:"end",     emoji:"💀", name:"Koniec",    coinMult:10.0,luckBonus:8.0, dmgBonus:500 },
+    { id:"truth",   emoji:"👁️", name:"Prawda",    coinMult:30.0,luckBonus:6.0, dmgBonus:100 },
+  ],
+};
+
+const PET_COLORS = { epic:"#c084fc", legendary:"#fbbf24", mythic:"#f472b6", cosmic:"#67e8f9", celestial:"#fde68a", secret:"#ff0080" };
+const EGG_EMOJIS = { epic:"🥚", legendary:"🟡", mythic:"🟣", cosmic:"🔵", celestial:"⚪", secret:"⬛" };
+// Jajka tylko epic+
+const EGG_RARITIES = ["epic","legendary","mythic","cosmic","celestial","secret"];
+const EGG_DROP_CHANCE = 0.10; // 10% z sejfu epic+
+
+function tryDropEgg() {
+  if (!curSafe) return;
+  if (!EGG_RARITIES.includes(curSafe.id)) return;
+  if (Math.random() > EGG_DROP_CHANCE) return;
+  // Daj jajko tej samej rzadkości
+  if (!ss.eggs) ss.eggs = {};
+  ss.eggs[curSafe.id] = (ss.eggs[curSafe.id] || 0) + 1;
+  toast2("🥚 Dostałeś " + curSafe.name + " jajko!");
+  autoSave();
+}
+
+function recalcPetBonuses() {
+  if (!ss.equippedPetId || !ss.pets || !ss.pets.length) {
+    ss.petBonuses = { coinMult:1, luckBonus:0, dmgBonus:0 };
+    return;
+  }
+  const pet = ss.pets.find(p => p.uid === ss.equippedPetId);
+  if (!pet) { ss.petBonuses = { coinMult:1, luckBonus:0, dmgBonus:0 }; return; }
+  ss.petBonuses = { coinMult: pet.coinMult, luckBonus: pet.luckBonus, dmgBonus: pet.dmgBonus };
+}
+
+// ── PET UI
+let currentPetTab = "pets";
+window.switchPetTab = function(tab) {
+  currentPetTab = tab;
+  document.getElementById("tabPets").classList.toggle("active", tab==="pets");
+  document.getElementById("tabEggs").classList.toggle("active", tab==="eggs");
+  buildPetContent();
+};
+
+function buildPetContent() {
+  const el = document.getElementById("petContent");
+  if (currentPetTab === "pets") buildPetGrid(el);
+  else buildEggGrid(el);
+}
+
+function buildPetGrid(el) {
+  if (!ss.pets || !ss.pets.length) {
+    el.innerHTML = "<div style='text-align:center;color:#555;padding:40px;'>Brak petów — otwieraj jajka!</div>";
+    return;
+  }
+  el.innerHTML = "<div class='pet-grid'></div>";
+  const grid = el.querySelector(".pet-grid");
+  ss.pets.forEach(pet => {
+    const isEq = pet.uid === ss.equippedPetId;
+    const cell = document.createElement("div");
+    cell.className = "pet-cell" + (isEq?" equipped":"");
+    const col = PET_COLORS[pet.rarity] || "#ccc";
+    cell.innerHTML = `
+      <div class="pet-emoji">${pet.emoji}</div>
+      <div class="pet-name">${pet.name}</div>
+      <div class="pet-rar" style="color:${col}">${pet.rarity.toUpperCase()}</div>
+      <div class="pet-stats" style="font-size:9px;">💰${pet.coinMult}x 🍀+${pet.luckBonus} ⚔️+${pet.dmgBonus}</div>
+      ${isEq?"<div style='font-size:9px;color:#ffd200;'>✓ Aktywny</div>":""}
+    `;
+    cell.onclick = () => {
+      ss.equippedPetId = isEq ? null : pet.uid;
+      recalcPetBonuses(); updateHUD(); autoSave(); buildPetContent();
+      toast2(isEq ? "Pet zdjęty" : "✅ Wyposażono: " + pet.name + "!");
+    };
+    grid.appendChild(cell);
+  });
+}
+
+function buildEggGrid(el) {
+  if (!ss.eggs) ss.eggs = {};
+  const hasAny = EGG_RARITIES.some(r => (ss.eggs[r]||0) > 0);
+  if (!hasAny) {
+    el.innerHTML = "<div style='text-align:center;color:#555;padding:40px;'>Brak jajek — niszcz Epic+ sejfy!</div>";
+    return;
+  }
+  el.innerHTML = "<div class='egg-grid'></div>";
+  const grid = el.querySelector(".egg-grid");
+  EGG_RARITIES.forEach(rar => {
+    const count = ss.eggs[rar] || 0;
+    if (count === 0) return;
+    const col = PET_COLORS[rar];
+    const cell = document.createElement("div");
+    cell.className = "egg-cell";
+    cell.innerHTML = `
+      <div class="egg-emoji" style="filter:drop-shadow(0 0 8px ${col})">${EGG_EMOJIS[rar]||"🥚"}</div>
+      <div class="egg-rar" style="color:${col}">${rar.toUpperCase()}</div>
+      <div class="egg-count">x${count}</div>
+      <div class="open-btns">
+        <button class="open-btn" ${count<1?"disabled":""} onclick="openEggs('${rar}',1)">Otwórz x1</button>
+        <button class="open-btn" ${count<3?"disabled":""} onclick="openEggs('${rar}',3)">x3</button>
+        <button class="open-btn gem-btn" ${ss.gems<150?"disabled":""} onclick="openEggs('${rar}',8)">x8 (150💎)</button>
+      </div>
+    `;
+    grid.appendChild(cell);
+  });
+}
+
+// ── EGG OPENING ANIMATION
+window.openEggs = async function(rar, count) {
+  const have = ss.eggs[rar] || 0;
+  if (count === 8) {
+    if (ss.gems < 150) { toast2("Za mało 💎! Potrzebujesz 150!"); return; }
+    if (have < 1) { toast2("Brak jajek!"); return; }
+    ss.gems -= 150;
+    count = Math.min(8, have);
+  } else {
+    if (have < count) { toast2("Za mało jajek!"); return; }
+  }
+  ss.eggs[rar] -= count;
+  document.getElementById("petOverlay").classList.remove("show");
+
+  // Show animation
+  const overlay = document.getElementById("eggOpenOverlay");
+  const eggEl = document.getElementById("eggOpenEmoji");
+  const resultGrid = document.getElementById("eggResultGrid");
+  const closeBtn = document.getElementById("eggOpenClose");
+  eggEl.textContent = EGG_EMOJIS[rar] || "🥚";
+  resultGrid.innerHTML = "";
+  closeBtn.style.display = "none";
+  overlay.classList.add("show");
+
+  // Wobble animation
+  eggEl.classList.add("wobble");
+  await sleep(1400);
+  eggEl.classList.remove("wobble");
+  eggEl.classList.add("crack");
+  await sleep(500);
+  eggEl.style.display = "none";
+
+  // Hatch pets
+  const pets = PET_DEFS[rar] || PET_DEFS.epic;
+  for (let i = 0; i < count; i++) {
+    const pet = pets[Math.floor(Math.random() * pets.length)];
+    const newPet = { ...pet, uid: Date.now() + Math.random(), rarity: rar };
+    ss.pets.push(newPet);
+    // Show card with delay
+    await sleep(300);
+    const card = document.createElement("div");
+    card.className = "egg-result-card";
+    card.style.borderColor = PET_COLORS[rar] || "#fff";
+    card.innerHTML = `
+      <div class="erc-emoji">${pet.emoji}</div>
+      <div class="erc-name">${pet.name}</div>
+      <div class="erc-rar" style="color:${PET_COLORS[rar]}">${rar.toUpperCase()}</div>
+      <div style="font-size:9px;color:#ffd200;">💰${pet.coinMult}x 🍀+${pet.luckBonus} ⚔️+${pet.dmgBonus}</div>
+    `;
+    resultGrid.appendChild(card);
+  }
+
+  closeBtn.style.display = "block";
+  recalcPetBonuses(); autoSave();
+  checkAch2();
+};
+
+window.closeEggOpen = function() {
+  document.getElementById("eggOpenOverlay").classList.remove("show");
+  document.getElementById("eggOpenEmoji").style.display = "block";
+  document.getElementById("eggOpenEmoji").classList.remove("crack");
+  document.getElementById("petOverlay").classList.add("show");
+  switchPetTab("pets");
+};
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── NICK SYSTEM
+let playerNick2 = "";
+
+window.saveNick2 = function() {
+  const nick = document.getElementById("nickInput2").value.trim();
+  const err = document.getElementById("nickErr2");
+  if (!nick || nick.length < 2) { err.textContent="Min 2 znaki!"; return; }
+  if (nick.length > 20) { err.textContent="Max 20 znaków!"; return; }
+  playerNick2 = nick;
+  ss.nick = nick;
+  document.getElementById("nickOverlay2").classList.remove("show");
+  autoSave(); updateLbNick();
+  toast2("✅ Nick: " + nick);
+};
+document.getElementById("nickInput2").addEventListener("keydown", e => { if(e.key==="Enter") saveNick2(); });
+
+function updateLbNick() {
+  if (currentUser && ss.nick) {
+    setDoc(doc(db,"safeLeaderboard",currentUser.uid), {
+      nick: ss.nick,
+      safesDestroyed: ss.safesDestroyed,
+      coins: ss.coins,
+      pets: ss.pets ? ss.pets.length : 0,
+    }, { merge:true }).catch(()=>{});
+  }
+}
+
+// ── LEADERBOARD
+window.openLb2 = function() {
+  document.getElementById("lbOverlay2").classList.add("show");
+  loadLb2();
+};
+
+window.loadLb2 = async function() {
+  const field = document.getElementById("lbField2").value;
+  const listEl = document.getElementById("lbList2");
+  const statusEl = document.getElementById("lbStatus2");
+  listEl.innerHTML = "";
+  statusEl.textContent = "Ładowanie...";
+  try {
+    const q = query(collection(db,"safeLeaderboard"), orderBy(field,"desc"), limit(20));
+    const snap = await getDocs(q);
+    const medals = ["🥇","🥈","🥉"];
+    snap.docs.forEach((d, i) => {
+      const data = d.data();
+      const isMe = currentUser && d.id === currentUser.uid;
+      const row = document.createElement("div");
+      row.className = "lb2-row" + (isMe?" me":"");
+      const val = field==="coins" ? fmt2(data.coins||0)+" coinów" : field==="pets" ? (data.pets||0)+" petów" : (data.safesDestroyed||0)+" sejfów";
+      row.innerHTML = `<span class="lb2-rank">${medals[i]||"#"+(i+1)}</span><span class="lb2-name">${data.nick||"???"}</span><span class="lb2-val">${val}</span>`;
+      listEl.appendChild(row);
+    });
+    statusEl.textContent = snap.docs.length ? "" : "Brak danych";
+  } catch(e) { statusEl.textContent = "Błąd: " + e.message; }
+};
+
 // ── START
 function startGame() {
   document.getElementById("main").style.display = "flex";
   document.getElementById("hud").style.display  = "flex";
   document.getElementById("bottomBar").style.display = "flex";
   document.getElementById("backToMenu").style.display = "block";
+  if (!ss.nick) {
+    document.getElementById("nickOverlay2").classList.add("show");
+    document.getElementById("nickInput2").focus();
+  }
+  recalcPetBonuses();
   updateHUD();
   buildAchGrid2();
   spawnSafe();
